@@ -168,6 +168,27 @@ export interface AnalysisResult {
   warnings: string[];
 }
 
+export interface Check {
+  name: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface ExportedFile {
+  format: 'docx' | 'pdf';
+  path: string;
+  filename: string;
+  size_bytes: number;
+  pages: number | null;
+  checks: Check[];
+}
+
+export interface ExportResult {
+  folder: string;
+  files: ExportedFile[];
+  warnings: string[];
+}
+
 export type ResumeLength = 'concise' | 'standard' | 'full';
 
 export interface Flag {

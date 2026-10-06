@@ -169,6 +169,61 @@ details {
   }
 }
 
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.file {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.file-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  .note {
+    margin-left: 8px;
+  }
+}
+
+.checks {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+
+  li {
+    display: flex;
+    gap: 8px;
+    margin: 3px 0;
+    color: var(--muted);
+  }
+
+  .mark {
+    flex: 0 0 16px;
+    font-weight: 700;
+    color: var(--ok);
+  }
+
+  .bad .mark,
+  .bad {
+    color: var(--warn);
+  }
+}
+
+code {
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .preview {
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   font-size: 0.85rem;

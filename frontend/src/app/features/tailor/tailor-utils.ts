@@ -120,8 +120,11 @@ function dateRange(start: string, end: string, current: boolean): string {
   return [start, last].filter(Boolean).join(' - ');
 }
 
-/** Plain, ATS-friendly text rendering: single column, standard headings, simple bullets. */
-export function toPlainText(profile: Profile): string {
+/**
+ * Plain, ATS-friendly text rendering: single column, standard headings, simple bullets.
+ * Section order matches the exported files; `skillsFirst` puts Skills before Experience.
+ */
+export function toPlainText(profile: Profile, skillsFirst = true): string {
   const lines: string[] = [];
   const { contact } = profile;
 
@@ -141,25 +144,36 @@ export function toPlainText(profile: Profile): string {
     }
   };
 
+  const skills = (): void =>
+    section(
+      'SKILLS',
+      profile.skills
+        .filter((group) => group.items.length > 0)
+        .map((group) =>
+          group.category ? `${group.category}: ${group.items.join(', ')}` : group.items.join(', '),
+        ),
+    );
+
+  const experience = (): void =>
+    section(
+      'EXPERIENCE',
+      profile.experience.flatMap((role, index) => [
+        ...(index > 0 ? [''] : []),
+        [role.title, role.company].filter(Boolean).join(', ') +
+          (role.location ? `, ${role.location}` : ''),
+        dateRange(role.start, role.end, role.current),
+        ...role.bullets.map((bullet) => `- ${bullet}`),
+      ]),
+    );
+
   section('SUMMARY', profile.summary ? [profile.summary] : []);
-
-  section(
-    'EXPERIENCE',
-    profile.experience.flatMap((role, index) => [
-      ...(index > 0 ? [''] : []),
-      [role.title, role.company].filter(Boolean).join(', ') +
-        (role.location ? `, ${role.location}` : ''),
-      dateRange(role.start, role.end, role.current),
-      ...role.bullets.map((bullet) => `- ${bullet}`),
-    ]),
-  );
-
-  section(
-    'SKILLS',
-    profile.skills.map((group) =>
-      group.category ? `${group.category}: ${group.items.join(', ')}` : group.items.join(', '),
-    ),
-  );
+  if (skillsFirst) {
+    skills();
+    experience();
+  } else {
+    experience();
+    skills();
+  }
 
   section(
     'EDUCATION',

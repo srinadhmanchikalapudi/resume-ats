@@ -111,16 +111,23 @@ describe('toPlainText', () => {
       'SUMMARY',
       'New summary.',
       '',
+      'SKILLS',
+      'Languages: C#, Python',
+      '',
       'EXPERIENCE',
       'Senior Engineer, Acme',
       '2020 - Present',
       '- Built a REST API.',
       '- Wrote docs.',
       '- Ran jobs.',
-      '',
-      'SKILLS',
-      'Languages: C#, Python',
     ]);
+  });
+
+  it('can put skills after experience', () => {
+    const headings = toPlainText(toProfile(toEditable(tailored())), false)
+      .split('\n')
+      .filter((line) => /^[A-Z]{5,}$/.test(line));
+    expect(headings).toEqual(['SUMMARY', 'EXPERIENCE', 'SKILLS']);
   });
 
   it('omits sections that are empty', () => {

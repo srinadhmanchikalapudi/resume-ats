@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   AnalysisResult,
   ConnectionResult,
+  ExportResult,
   Health,
   ImportResult,
   ModelInfo,
@@ -70,5 +71,19 @@ export class ApiService {
 
   tailorResume(analysis: AnalysisResult, length: ResumeLength) {
     return this.http.post<TailoredResume>('/jobs/tailor', { analysis, length });
+  }
+
+  exportResume(profile: Profile, jobTitle: string, company: string, skillsFirst: boolean) {
+    return this.http.post<ExportResult>('/export', {
+      profile,
+      job_title: jobTitle,
+      company,
+      skills_first: skillsFirst,
+    });
+  }
+
+  /** The bytes of an exported file, for browser mode where the desktop shell cannot open it directly. */
+  downloadExport(path: string) {
+    return this.http.get('/export/file', { params: { path }, responseType: 'blob' });
   }
 }

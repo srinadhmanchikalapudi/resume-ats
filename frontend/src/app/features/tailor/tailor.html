@@ -172,7 +172,77 @@
       <div class="actions">
         <button type="button" (click)="copy()">{{ copied() ? 'Copied' : 'Copy text' }}</button>
       </div>
-      <p class="note">DOCX and PDF files you can submit are the next step.</p>
+    </section>
+
+    <section class="card">
+      <h2>Export</h2>
+      <p class="note">
+        Creates a DOCX and a PDF in one folder, built to read cleanly in applicant tracking systems: a single column,
+        standard fonts and headings, real bullet lists, and no tables, images, headers or footers.
+      </p>
+
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="!state.skillsFirst()"
+          (ngModelChange)="state.skillsFirst.set(!$event)"
+        />
+        Put Skills after Experience (default is before)
+      </label>
+
+      <div class="actions">
+        <button type="button" class="primary" [disabled]="state.exporting()" (click)="exportFiles()">
+          {{ state.exporting() ? 'Creating files…' : state.exported() ? 'Export again' : 'Export DOCX and PDF' }}
+        </button>
+      </div>
+      @if (state.exportError(); as text) {
+        <p class="notice error" role="alert">{{ text }}</p>
+      }
+
+      @if (state.exported(); as result) {
+        @if (state.hasChangedSinceExport()) {
+          <p class="flag">You have edited the resume since this export. Export again to include the changes.</p>
+        }
+        @for (w of result.warnings; track w) {
+          <p class="flag">{{ w }}</p>
+        }
+
+        @for (file of result.files; track file.format) {
+          <div class="file">
+            <div class="file-head">
+              <div>
+                <strong>{{ file.filename }}</strong>
+                <span class="note">
+                  {{ size(file.size_bytes) }}{{ file.pages ? ' · ' + file.pages + (file.pages === 1 ? ' page' : ' pages') : '' }}
+                </span>
+              </div>
+              <button type="button" class="small" (click)="openFile(file)">
+                {{ files.canOpenInPlace ? 'Open' : 'Download' }}
+              </button>
+            </div>
+            <ul class="checks">
+              @for (c of file.checks; track c.name) {
+                <li [class.bad]="!c.ok">
+                  <span class="mark" aria-hidden="true">{{ c.ok ? '✓' : '!' }}</span>
+                  <span><strong>{{ c.name }}.</strong> {{ c.detail }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <p class="note">
+          Saved in <code>{{ result.folder }}</code>
+        </p>
+        @if (files.canOpenInPlace) {
+          <div class="actions">
+            <button type="button" (click)="showFolder(result.folder)">Show in folder</button>
+          </div>
+        }
+        @if (fileError(); as text) {
+          <p class="notice error" role="alert">{{ text }}</p>
+        }
+      }
     </section>
   }
 }

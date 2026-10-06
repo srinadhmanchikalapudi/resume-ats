@@ -1,7 +1,9 @@
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { DroppedBullet, ResumeLength, SkillGroup } from '../../core/models';
+import { errorMessage } from '../../core/errors';
+import { FileActions } from '../../core/file-actions.service';
+import { DroppedBullet, ExportedFile, ResumeLength, SkillGroup } from '../../core/models';
 import { JobAnalysisState } from '../jobs/job-analysis.state';
 import { commaToList, listToComma, moveItem } from '../profile/profile-utils';
 import { TailorState } from './tailor.state';
@@ -22,6 +24,7 @@ interface LengthOption {
 export class TailorPage {
   protected readonly jobs = inject(JobAnalysisState);
   protected readonly state = inject(TailorState);
+  protected readonly files = inject(FileActions);
 
   protected readonly lengths: LengthOption[] = [
     { value: 'concise', label: 'Concise', hint: 'About one page: 5, 4, then 3 bullets per role' },
@@ -30,6 +33,7 @@ export class TailorPage {
   ];
 
   protected readonly copied = signal(false);
+  protected readonly fileError = signal<string | null>(null);
   private readonly previewBox = viewChild<ElementRef<HTMLTextAreaElement>>('previewBox');
 
   protected readonly job = computed(() => this.jobs.result()?.job ?? null);
@@ -72,7 +76,34 @@ export class TailorPage {
   /** The finished resume as plain text. Recomputed on every change detection pass, which is cheap here. */
   protected preview(): string {
     const resume = this.state.resume();
-    return resume ? toPlainText(toProfile(resume)) : '';
+    return resume ? toPlainText(toProfile(resume), this.state.skillsFirst()) : '';
+  }
+
+  protected async exportFiles(): Promise<void> {
+    this.fileError.set(null);
+    await this.state.export();
+  }
+
+  protected async openFile(file: ExportedFile): Promise<void> {
+    this.fileError.set(null);
+    try {
+      await this.files.open(file);
+    } catch (error) {
+      this.fileError.set(`Could not open the file: ${errorMessage(error)}`);
+    }
+  }
+
+  protected async showFolder(folder: string): Promise<void> {
+    this.fileError.set(null);
+    try {
+      await this.files.openFolder(folder);
+    } catch (error) {
+      this.fileError.set(`Could not open the folder: ${errorMessage(error)}`);
+    }
+  }
+
+  protected size(bytes: number): string {
+    return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 
   protected async copy(): Promise<void> {

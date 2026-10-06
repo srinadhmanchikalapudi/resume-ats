@@ -89,18 +89,33 @@ lightly reword the profile's content. The model proposes; the server verifies:
 Code cannot detect every invented claim (for example "led" for "contributed"), so the UI shows the original beside
 every proposal and the user decides item by item. The edited result is a plain `Profile`, ready for export.
 
-## Exports
+## Exports (Phase 1, slice 4)
 
-- DOCX via `python-docx` (single column, no tables, standard fonts, standard headings).
-- PDF via ReportLab or fpdf2 (pure Python, real text layer). WeasyPrint is avoided because its native libraries are
-  hard to bundle on both OSes.
+`POST /export` takes the final resume (a `Profile`) and writes a **DOCX and a PDF** into a new folder,
+`<data dir>/applications/<date>_<company>_<role>/`, named `<Name>_Resume.docx|pdf`. Both come from one shared block list
+so they always say the same thing. Skills go before Experience by default (an option moves them after).
+
+- **DOCX** (`python-docx`): one column, Arial, real Word Heading 1 and List Bullet styles, no tables, images, text boxes,
+  headers or footers; theme fonts removed so the font name is honoured; current Word compatibility mode; the document
+  author is the candidate, not the library.
+- **PDF** (`fpdf2`): one column, standard Helvetica with a real text layer, Windows-1252 so bullets, dashes, curly quotes
+  and accents work; characters outside it fall back to a plain letter or are counted and reported (the DOCX keeps them).
+  WeasyPrint is avoided because its native libraries are hard to bundle on both OSes. Embedding a Unicode font would
+  remove the Windows-1252 limit and is a possible follow-up for non-Latin names.
+- **Verified by reading the files back**, not by trusting the builders: the DOCX is re-opened to confirm one column, no
+  tables, graphics or header/footer text, standard fonts and headings; the PDF is text-extracted to confirm a text layer,
+  reading order, no images, standard fonts and page count. Every bullet must be found in both files. Results are shown
+  to the user beside each file.
+- `GET /export/file?path=` serves an exported file for browser mode and refuses anything outside the exports folder.
+- The desktop app opens files and the folder through the Tauri opener plugin, with permission limited to its own data
+  folder. The plugin's reveal-in-folder permission is not scoped, so the app opens the folder instead of using it.
 
 ## Phases
 
 | Phase | Scope |
 |---|---|
 | 0 | Skeleton: Tauri + FastAPI sidecar + Angular. Settings (key, model). CI builds Windows + macOS installers; update prompt works end to end. |
-| 1 | Master profile import (PDF/DOCX → structured JSON), job paste, match analysis, tailoring, DOCX/PDF export. |
+| 1 | Master profile import (PDF/DOCX → structured JSON), job paste, match analysis, tailoring, DOCX/PDF export. **Done.** |
 | 2 | Application archive: SQLite + folders, list/search, status tracking, version history. |
 | 3 | Quality checks: resume health, ATS-safety checks on PDF/DOCX, specificity and quantification feedback. |
 | 4 | Extras: LinkedIn text comparison, interview-prep notes, cover letters. |
