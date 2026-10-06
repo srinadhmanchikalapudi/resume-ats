@@ -187,7 +187,84 @@ export interface ExportResult {
   folder: string;
   files: ExportedFile[];
   warnings: string[];
+  application_id: number | null;
+  version_id: number | null;
+  version_number: number | null;
 }
+
+export type ApplicationStatus =
+  | 'saved'
+  | 'applied'
+  | 'screening'
+  | 'interviewing'
+  | 'offer'
+  | 'rejected'
+  | 'withdrawn';
+
+export interface ApplicationSummary {
+  id: number;
+  company: string;
+  title: string;
+  location: string;
+  status: ApplicationStatus;
+  match_score: number | null;
+  applied_on: string | null;
+  interview_on: string | null;
+  created_at: string;
+  updated_at: string;
+  version_count: number;
+  submitted_version: number | null;
+}
+
+export interface VersionOut {
+  id: number;
+  number: number;
+  created_at: string;
+  pages: number | null;
+  checks_passed: boolean;
+  submitted: boolean;
+  skills_first: boolean;
+  folder: string;
+  docx_path: string;
+  pdf_path: string;
+}
+
+export interface VersionDetail extends VersionOut {
+  profile: Profile;
+}
+
+export interface HistoryItem {
+  status: ApplicationStatus;
+  changed_at: string;
+}
+
+export interface ApplicationDetail extends ApplicationSummary {
+  job_url: string;
+  notes: string;
+  posting_text: string;
+  analysis: AnalysisResult | null;
+  folder: string;
+  versions: VersionOut[];
+  history: HistoryItem[];
+}
+
+export interface ApplicationCreated extends ApplicationDetail {
+  already_saved: boolean;
+}
+
+/** Only the fields present are changed. A date set to '' is cleared. */
+export interface ApplicationPatch {
+  company?: string;
+  title?: string;
+  location?: string;
+  job_url?: string;
+  status?: ApplicationStatus;
+  applied_on?: string;
+  interview_on?: string;
+  notes?: string;
+}
+
+export type ApplicationSort = 'updated' | 'interview' | 'company';
 
 export type ResumeLength = 'concise' | 'standard' | 'full';
 

@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from ..config import data_dir
+from ..applications import files as application_files
+from ..applications import store
 from .blocks import build_blocks
 from .checks import check_docx, check_pdf
 from .docx_builder import build_docx
@@ -12,36 +13,42 @@ from .pdf_builder import build_pdf
 from .text import slug
 
 
+class ApplicationNotFoundError(LookupError):
+    pass
+
+
 def applications_dir() -> Path:
-    path = data_dir() / "applications"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def _unique_folder(base: Path, stem: str) -> Path:
-    candidate, number = base / stem, 2
-    while candidate.exists():
-        candidate = base / f"{stem}-{number}"
-        number += 1
-    return candidate
+    return application_files.applications_root()
 
 
 def export_resume(request: ExportRequest) -> ExportResult:
-    """Writes the resume as DOCX and PDF into a new folder and verifies both files."""
+    """Writes the resume as DOCX and PDF and verifies both files.
+
+    With an application, the files become that application's next numbered version (v1, v2, ...) and are
+    recorded in the archive. Without one, they go into a new standalone dated folder.
+    """
     profile = request.profile
     blocks = build_blocks(profile, skills_first=request.skills_first)
     if not any(block.kind in {"bullet", "item_title", "text"} for block in blocks):
         raise ValueError("There is nothing to export yet. Add work experience to the resume first.")
 
     name = profile.contact.name.strip()
-    today = datetime.now().astimezone().date().isoformat()
-    stem = "_".join([today, slug(request.company) or "Company", slug(request.job_title) or "Role"])
-    folder = _unique_folder(applications_dir(), stem)
-    folder.mkdir(parents=True)
-
     base_name = f"{slug(name).replace('-', '_') or 'Resume'}_Resume"
-    warnings: list[str] = []
 
+    version_number: int | None = None
+    if request.application_id is not None:
+        folder_name = store.folder_of(request.application_id)
+        if folder_name is None:
+            raise ApplicationNotFoundError(request.application_id)
+        version_number = store.next_version_number(request.application_id)
+        folder = application_files.version_dir(folder_name, version_number)
+    else:
+        today = datetime.now().astimezone().date().isoformat()
+        stem = "_".join([today, slug(request.company) or "Company", slug(request.job_title) or "Role"])
+        folder = application_files.applications_root() / application_files.unique_folder_name(stem)
+        folder.mkdir(parents=True)
+
+    warnings: list[str] = []
     docx_bytes = build_docx(blocks, name=name, paper=request.paper)
     pdf = build_pdf(blocks, name=name, paper=request.paper)
 
@@ -50,7 +57,7 @@ def export_resume(request: ExportRequest) -> ExportResult:
     pdf_path.write_bytes(pdf.data)
 
     pdf_checks, pages = check_pdf(pdf.data, blocks, pdf.replaced_characters)
-    files = [
+    exported = [
         ExportedFile(
             format="docx",
             path=str(docx_path),
@@ -76,4 +83,25 @@ def export_resume(request: ExportRequest) -> ExportResult:
     if not profile.contact.email:
         warnings.append("The resume has no email address. Recruiters and applicant tracking systems look for one.")
 
-    return ExportResult(folder=str(folder), files=files, warnings=warnings)
+    version_id = None
+    if request.application_id is not None and version_number is not None:
+        version_id = store.add_version(
+            request.application_id,
+            number=version_number,
+            subdir=f"v{version_number}",
+            docx_name=docx_path.name,
+            pdf_name=pdf_path.name,
+            pages=pages,
+            checks_passed=all(check.ok for file in exported for check in file.checks),
+            skills_first=request.skills_first,
+            profile=profile,
+        )
+
+    return ExportResult(
+        folder=str(folder),
+        files=exported,
+        warnings=warnings,
+        application_id=request.application_id,
+        version_id=version_id,
+        version_number=version_number,
+    )

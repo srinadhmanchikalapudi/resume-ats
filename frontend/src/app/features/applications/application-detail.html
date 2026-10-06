@@ -1,0 +1,209 @@
+<p class="back"><a routerLink="/applications">← All applications</a></p>
+
+@if (loading()) {
+  <p class="note">Loading…</p>
+} @else if (error(); as text) {
+  <p class="notice error" role="alert">{{ text }}</p>
+} @else if (detail(); as app) {
+  @if (actionError(); as text) {
+    <p class="notice error" role="alert">{{ text }}</p>
+  }
+
+  <section class="card">
+    <div class="head">
+      <div class="head-fields">
+        <label class="field">
+          <span class="label">Company</span>
+          <input type="text" [value]="app.company" (change)="onText('company', $event)" />
+        </label>
+        <label class="field">
+          <span class="label">Role</span>
+          <input type="text" [value]="app.title" (change)="onText('title', $event)" />
+        </label>
+        <label class="field">
+          <span class="label">Location</span>
+          <input type="text" [value]="app.location" (change)="onText('location', $event)" />
+        </label>
+        <label class="field">
+          <span class="label">Job link</span>
+          <input type="text" placeholder="https://" [value]="app.job_url" (change)="onText('job_url', $event)" />
+        </label>
+      </div>
+      @if (app.match_score !== null) {
+        <div class="score" title="Match estimate when it was analysed">
+          <div class="score-number">{{ app.match_score }}</div>
+          <div class="score-label">match</div>
+        </div>
+      }
+    </div>
+
+    @if (app.job_url) {
+      <div class="actions">
+        <button type="button" class="small" (click)="openJob(app.job_url)">Open job link</button>
+      </div>
+    }
+
+    <div class="grid3">
+      <label class="field">
+        <span class="label">Status</span>
+        <select [value]="app.status" (change)="onStatus($event)" aria-label="Status">
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value" [selected]="option.value === app.status">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">Applied on</span>
+        <input type="date" [value]="app.applied_on ?? ''" (change)="onDate('applied_on', $event)" />
+      </label>
+      <label class="field">
+        <span class="label">
+          Interview on
+          @if (app.interview_on) {
+            <span class="when">({{ interviewLabel() }})</span>
+          }
+        </span>
+        <input type="date" [value]="app.interview_on ?? ''" (change)="onDate('interview_on', $event)" />
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row-head">
+      <h2>Notes</h2>
+      <span class="note" aria-live="polite">
+        @switch (notesState()) {
+          @case ('saving') {
+            Saving…
+          }
+          @case ('saved') {
+            Saved
+          }
+        }
+      </span>
+    </div>
+    <p class="note">Interview prep, questions to ask, who you spoke to, what they said. Saved when you click away.</p>
+    <textarea
+      rows="9"
+      aria-label="Notes"
+      placeholder="Recruiter name, interview format, topics to review, questions to ask…"
+      [value]="app.notes"
+      (change)="onNotes($event)"
+    ></textarea>
+  </section>
+
+  <section class="card">
+    <h2>Resume versions</h2>
+    @if (app.versions.length === 0) {
+      <p class="note">
+        No resume exported for this job yet. Tailor and export one from the <a routerLink="/tailor">Tailor</a> page.
+      </p>
+    } @else {
+      <p class="note">
+        Each export is kept as its own version. Mark the one you actually sent so you can see exactly what the employer
+        has.
+      </p>
+    }
+    @for (v of app.versions; track v.id) {
+      <div class="version" [class.submitted]="v.submitted">
+        <div class="version-head">
+          <div>
+            <strong>Version {{ v.number }}</strong>
+            @if (v.submitted) {
+              <span class="badge-sent">Submitted</span>
+            }
+            <span class="note">
+              {{ formatTimestamp(v.created_at) }}{{ v.pages ? ' · ' + v.pages + (v.pages === 1 ? ' page' : ' pages') : '' }}
+              @if (!v.checks_passed) {
+                · <span class="warn">some ATS checks did not pass</span>
+              }
+            </span>
+          </div>
+          <div class="version-actions">
+            <button type="button" class="small" (click)="openVersionFile(v, 'docx')">
+              {{ files.canOpenInPlace ? 'Open DOCX' : 'Download DOCX' }}
+            </button>
+            <button type="button" class="small" (click)="openVersionFile(v, 'pdf')">
+              {{ files.canOpenInPlace ? 'Open PDF' : 'Download PDF' }}
+            </button>
+            @if (files.canOpenInPlace) {
+              <button type="button" class="small" (click)="openFolder(v.folder)">Folder</button>
+            }
+            <button type="button" class="small" (click)="togglePreview(v)">
+              {{ previewId() === v.id ? 'Hide text' : 'View text' }}
+            </button>
+            <button
+              type="button"
+              class="small"
+              [class.primary]="!v.submitted"
+              (click)="setSubmitted(v, !v.submitted)"
+            >
+              {{ v.submitted ? 'Unmark submitted' : 'Mark as submitted' }}
+            </button>
+          </div>
+        </div>
+        @if (previewId() === v.id) {
+          <textarea class="preview" readonly rows="18" aria-label="Resume text" [value]="previewText()"></textarea>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="card">
+    <h2>Timeline</h2>
+    <ol class="timeline">
+      @for (h of app.history; track $index) {
+        <li>
+          <strong>{{ statusLabel(h.status) }}</strong>
+          <span class="note">{{ formatTimestamp(h.changed_at) }}</span>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Job posting (exactly as pasted)</summary>
+      <pre class="posting">{{ app.posting_text }}</pre>
+    </details>
+  </section>
+
+  @if (app.analysis; as analysis) {
+    <details class="analysis">
+      <summary>Match analysis from when you saved this</summary>
+      <app-analysis-view [result]="analysis" />
+    </details>
+  }
+
+  <section class="card">
+    <h2>Files</h2>
+    <p class="note">
+      Everything for this job is also kept as plain files you can browse without the app: the posting, the analysis,
+      your notes and each resume version.
+    </p>
+    <code>{{ app.folder }}</code>
+    @if (files.canOpenInPlace) {
+      <div class="actions">
+        <button type="button" (click)="openFolder(app.folder)">Open folder</button>
+      </div>
+    }
+  </section>
+
+  <section class="card danger">
+    @if (!confirmDelete()) {
+      <div class="actions">
+        <button type="button" (click)="confirmDelete.set(true)">Delete this application…</button>
+      </div>
+    } @else {
+      <p><strong>Delete {{ app.company || 'this application' }}?</strong> This cannot be undone.</p>
+      <label class="check">
+        <input type="checkbox" [ngModel]="deleteFiles()" (ngModelChange)="deleteFiles.set($event)" />
+        Also delete the saved files (posting, resumes, notes) from this computer
+      </label>
+      <div class="actions">
+        <button type="button" class="danger-button" (click)="remove()">Delete</button>
+        <button type="button" (click)="confirmDelete.set(false)">Cancel</button>
+      </div>
+    }
+  </section>
+}

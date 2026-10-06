@@ -3,12 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { AnalysisView } from './analysis-view';
 import { JobAnalysisState } from './job-analysis.state';
-import { STATUS_LABELS, groupByImportance, requiredGaps, scoreBand } from './job-utils';
 
 @Component({
   selector: 'app-jobs',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AnalysisView],
   templateUrl: './jobs.html',
   styleUrl: './jobs.scss',
 })
@@ -25,12 +25,6 @@ export class JobsPage implements OnInit {
   protected readonly canAnalyze = computed(
     () => this.state.posting().trim().length >= 80 && !this.state.analyzing(),
   );
-
-  protected readonly groups = computed(() => groupByImportance(this.state.result()?.matches ?? []));
-  protected readonly gaps = computed(() => requiredGaps(this.state.result()?.matches ?? []));
-  protected readonly band = computed(() => scoreBand(this.state.result()?.scores.overall ?? null));
-
-  protected readonly statusLabels = STATUS_LABELS;
 
   async ngOnInit(): Promise<void> {
     try {

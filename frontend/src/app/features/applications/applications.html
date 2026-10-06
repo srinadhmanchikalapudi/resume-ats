@@ -1,0 +1,118 @@
+<h1>Applications</h1>
+<p class="note lead">
+  Every job you have saved, with the posting, your analysis, the resumes you made and your notes, so everything is
+  here when an interview is scheduled.
+</p>
+
+@if (error(); as text) {
+  <p class="notice error" role="alert">{{ text }}</p>
+}
+
+@if (loading()) {
+  <p class="note">Loading…</p>
+} @else if (total() === 0) {
+  <section class="card empty">
+    <h2>No applications yet</h2>
+    <p class="note">
+      Paste a job posting on the <a routerLink="/jobs">Job match</a> page and choose “Save to my applications”. An
+      application is also saved automatically the first time you export a resume for a job.
+    </p>
+  </section>
+} @else {
+  @if (upcoming().length > 0) {
+    <section class="card upcoming">
+      <h2>Upcoming interviews</h2>
+      @for (a of upcoming(); track a.id) {
+        <a class="upcoming-row" [routerLink]="['/applications', a.id]">
+          <strong>{{ formatDay(a.interview_on) }}</strong>
+          <span class="when">{{ interviewLabel(a) }}</span>
+          <span>{{ a.company || 'Company not stated' }}: {{ a.title || 'Untitled role' }}</span>
+        </a>
+      }
+    </section>
+  }
+
+  <section class="card">
+    <div class="toolbar">
+      <input
+        type="text"
+        class="search"
+        placeholder="Search company, role, notes or the job posting"
+        aria-label="Search applications"
+        [ngModel]="query()"
+        (ngModelChange)="onQuery($event)"
+      />
+      <label class="sort">
+        <span class="label">Sort</span>
+        <select [ngModel]="sort()" (ngModelChange)="setSort($event)" aria-label="Sort applications">
+          <option value="updated">Recently updated</option>
+          <option value="interview">Upcoming interview</option>
+          <option value="company">Company</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="chips" role="group" aria-label="Filter by status">
+      <button type="button" class="chip-button" [class.on]="status() === ''" (click)="setStatus('')">
+        All {{ total() }}
+      </button>
+      @for (option of counts(); track option.value) {
+        <button
+          type="button"
+          class="chip-button"
+          [class.on]="status() === option.value"
+          (click)="setStatus(option.value)"
+        >
+          {{ option.label }} {{ option.count }}
+        </button>
+      }
+    </div>
+
+    @if (items().length === 0) {
+      <p class="note">
+        Nothing matches.
+        <button type="button" class="small" (click)="clearFilters()">Clear search and filters</button>
+      </p>
+    }
+
+    @for (a of items(); track a.id) {
+      <a class="row" [routerLink]="['/applications', a.id]">
+        <div class="main">
+          <div class="title">
+            <strong>{{ a.company || 'Company not stated' }}</strong>
+            <span>{{ a.title || 'Untitled role' }}</span>
+          </div>
+          <div class="meta">
+            @if (a.location) {
+              <span>{{ a.location }}</span>
+            }
+            @if (a.applied_on) {
+              <span>Applied {{ formatDay(a.applied_on) }}</span>
+            } @else {
+              <span>Saved {{ formatDay(a.created_at.slice(0, 10)) }}</span>
+            }
+            @if (a.interview_on) {
+              <span class="interview">Interview {{ formatDay(a.interview_on) }} ({{ interviewLabel(a) }})</span>
+            }
+            @if (a.version_count > 0) {
+              <span>
+                {{ a.version_count }} resume version{{ a.version_count === 1 ? '' : 's' }}
+                @if (a.submitted_version) {
+                  · v{{ a.submitted_version }} submitted
+                }
+              </span>
+            } @else {
+              <span>No resume exported yet</span>
+            }
+          </div>
+        </div>
+        <div class="side">
+          <span class="status" [class]="'status ' + a.status">{{ statusLabel(a.status) }}</span>
+          @if (a.match_score !== null) {
+            <span class="score" title="Match estimate">{{ a.match_score }}</span>
+          }
+        </div>
+      </a>
+    }
+  </section>
+}

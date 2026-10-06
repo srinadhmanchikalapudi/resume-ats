@@ -20,6 +20,8 @@ MEDIA_TYPES = {
 def export(body: ExportRequest) -> ExportResult:
     try:
         return service.export_resume(body)
+    except service.ApplicationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="That application no longer exists.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

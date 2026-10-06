@@ -231,6 +231,13 @@
           </div>
         }
 
+        @if (result.application_id) {
+          <p class="note">
+            Saved as <strong>version {{ result.version_number }}</strong> of this job in
+            <a [routerLink]="['/applications', result.application_id]">your applications</a>, where you can mark
+            it as the one you submitted.
+          </p>
+        }
         <p class="note">
           Saved in <code>{{ result.folder }}</code>
         </p>

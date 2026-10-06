@@ -110,13 +110,36 @@ so they always say the same thing. Skills go before Experience by default (an op
 - The desktop app opens files and the folder through the Tauri opener plugin, with permission limited to its own data
   folder. The plugin's reveal-in-folder permission is not scoped, so the app opens the folder instead of using it.
 
+## Application archive (Phase 2)
+
+Every job is kept so it can be found again when an interview is scheduled. Stored twice on purpose: SQLite for search
+and relationships, and a plain folder you can browse without the app.
+
+- **Database** (migration 2): `application` (company, role, location, link, status, applied and interview dates, notes,
+  the posting verbatim, its analysis, match score, folder), `resume_version` (the exact resume content, file names,
+  page count, whether the ATS checks passed, the section order used, and whether it was submitted) and
+  `status_history` (a timeline). Foreign keys cascade, so deleting an application removes its versions and history.
+- **Folder** `applications/<date>_<company>_<role>/`: `posting.txt`, `analysis.json`, `notes.md` (mirrored whenever notes
+  change) and `v1/`, `v2/`... each holding that version's DOCX and PDF.
+- **Saving:** explicit from the Job match page, and automatic the first time a resume is exported, so an exported resume
+  is never detached from its job. Saving the identical posting again (ignoring case and spacing) returns the existing
+  record instead of a duplicate.
+- **Versions:** each export is a new numbered version; the user marks the one actually sent. Marking the first one moves
+  `saved` to `applied` and records the date, but never downgrades a later status or overwrites an existing date.
+- **Search and views:** case-insensitive, every word must match somewhere in company, role, location, link, notes or the
+  posting text (wildcard characters are treated literally); status filter; sort by recent activity, upcoming interview
+  or company. The list page shows an upcoming-interviews strip.
+- **API:** `POST/GET /applications`, `GET/PATCH/DELETE /applications/{id}` (delete optionally removes the folder),
+  `GET /applications/{id}/versions/{vid}`, `PUT /applications/{id}/versions/{vid}/submitted`.
+- **Desktop permissions:** the app may open only paths inside its own data folder, and only http(s) links.
+
 ## Phases
 
 | Phase | Scope |
 |---|---|
 | 0 | Skeleton: Tauri + FastAPI sidecar + Angular. Settings (key, model). CI builds Windows + macOS installers; update prompt works end to end. |
 | 1 | Master profile import (PDF/DOCX → structured JSON), job paste, match analysis, tailoring, DOCX/PDF export. **Done.** |
-| 2 | Application archive: SQLite + folders, list/search, status tracking, version history. |
+| 2 | Application archive: SQLite + folders, list/search, status tracking, version history. **Done.** |
 | 3 | Quality checks: resume health, ATS-safety checks on PDF/DOCX, specificity and quantification feedback. |
 | 4 | Extras: LinkedIn text comparison, interview-prep notes, cover letters. |
 

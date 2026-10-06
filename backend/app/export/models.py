@@ -15,6 +15,8 @@ class ExportRequest(BaseModel):
     company: str = ""
     paper: Paper = "letter"
     skills_first: bool = True  # Skills before Experience (True) or after it (False)
+    # When set, the files go into that application's folder as its next numbered version.
+    application_id: int | None = None
 
 
 class Check(BaseModel):
@@ -36,3 +38,6 @@ class ExportResult(BaseModel):
     folder: str
     files: list[ExportedFile]
     warnings: list[str] = Field(default_factory=list)
+    application_id: int | None = None
+    version_id: int | None = None
+    version_number: int | None = None

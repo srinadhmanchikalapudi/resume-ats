@@ -1,0 +1,136 @@
+<section class="card">
+  <div class="job-head">
+    <div>
+      <h2>{{ result().job.title || 'Untitled role' }}</h2>
+      <p class="note">
+        {{ result().job.company || 'Company not stated' }}
+        @if (result().job.location) {
+          · {{ result().job.location }}
+        }
+        @if (result().job.work_mode && result().job.work_mode !== 'unknown') {
+          · {{ result().job.work_mode }}
+        }
+        @if (result().job.seniority && result().job.seniority !== 'unknown') {
+          · {{ result().job.seniority }}
+        }
+      </p>
+      @if (result().job.summary) {
+        <p class="summary">{{ result().job.summary }}</p>
+      }
+    </div>
+
+    <div class="score" [attr.aria-label]="'Match estimate ' + (result().scores.overall ?? 'not available')">
+      <div class="score-number">{{ result().scores.overall ?? '–' }}</div>
+      <div class="score-band">{{ band() }}</div>
+    </div>
+  </div>
+
+  <ul class="facts">
+    <li>
+      <strong>Required:</strong>
+      {{ result().scores.required_matched }} of {{ result().scores.required_total }} matched,
+      {{ result().scores.required_partial }} partial,
+      {{ result().scores.required_missing }} missing or unverified
+    </li>
+    @if (result().scores.candidate_years !== null) {
+      <li>
+        <strong>Experience:</strong> about {{ result().scores.candidate_years }} years in your profile
+        @if (result().scores.years_required !== null) {
+          · the posting asks for {{ result().scores.years_required }}+
+          @if (result().scores.years_short_by !== null) {
+            <span class="warn">(about {{ result().scores.years_short_by }} years short)</span>
+          } @else {
+            <span class="ok">(met)</span>
+          }
+        }
+      </li>
+    }
+  </ul>
+  <p class="note">
+    The estimate weighs required items 3×, preferred 1.5× and nice-to-have 0.5×. A model judges each match, so the
+    number can move a few points between runs. Focus on the gaps below, not the exact score.
+  </p>
+  <div class="actions">
+    <ng-content />
+  </div>
+
+  @for (w of result().warnings; track w) {
+    <p class="notice error">{{ w }}</p>
+  }
+</section>
+
+@if (gaps().length > 0) {
+  <section class="card">
+    <h2>Gaps in the required list</h2>
+    <p class="note">
+      Only add something to your resume if it is true. If a gap is real, consider leaving it out or addressing it in a
+      cover letter.
+    </p>
+    @for (gap of gaps(); track gap.requirement.id) {
+      <div class="gap">
+        <span class="badge" [class]="'badge ' + gap.status">{{ statusLabels[gap.status] }}</span>
+        <div>
+          <div class="req-text">{{ gap.requirement.text }}</div>
+          @if (gap.note) {
+            <div class="note">{{ gap.note }}</div>
+          }
+        </div>
+      </div>
+    }
+  </section>
+}
+
+<section class="card">
+  <h2>All requirements</h2>
+  @for (group of groups(); track group.importance) {
+    <h3>{{ group.label }}</h3>
+    @for (m of group.items; track m.requirement.id) {
+      <div class="req">
+        <span class="badge" [class]="'badge ' + m.status">{{ statusLabels[m.status] }}</span>
+        <div class="req-body">
+          <div class="req-text">
+            {{ m.requirement.text }}
+            <span class="chip">{{ m.requirement.category }}</span>
+          </div>
+          @if (m.note) {
+            <div class="note">{{ m.note }}</div>
+          }
+          @for (e of m.evidence; track $index) {
+            <div class="evidence"><strong>{{ e.label }}:</strong> “{{ e.quote }}”</div>
+          }
+        </div>
+      </div>
+    }
+  }
+</section>
+
+<section class="card">
+  <h2>Keyword check</h2>
+  <p class="note">
+    Many applicant tracking systems search for the exact words in a posting. These terms were checked literally against
+    your profile text.
+  </p>
+  @if (result().keywords.missing.length > 0) {
+    <div>
+      <span class="label">Not found in your profile</span>
+      <div class="chips">
+        @for (k of result().keywords.missing; track k) {
+          <span class="chip warn-chip">{{ k }}</span>
+        }
+      </div>
+      <p class="note">
+        If you do have experience with one of these under a different name, say it in the posting's wording.
+      </p>
+    </div>
+  }
+  @if (result().keywords.present.length > 0) {
+    <div>
+      <span class="label">Found</span>
+      <div class="chips">
+        @for (k of result().keywords.present; track k) {
+          <span class="chip ok-chip">{{ k }}</span>
+        }
+      </div>
+    </div>
+  }
+</section>

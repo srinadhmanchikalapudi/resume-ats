@@ -58,9 +58,17 @@ export class TailorState {
     this.exporting.set(true);
     this.exportError.set(null);
     try {
+      // An exported resume always belongs to a saved application, so it can be found again later.
+      const application = await this.jobs.saveApplication();
+      if (!application) {
+        this.exportError.set(this.jobs.saveError() ?? 'Could not save the application.');
+        return;
+      }
       const profile = toProfile(resume);
       this.exported.set(
-        await firstValueFrom(this.api.exportResume(profile, job.title, job.company, this.skillsFirst())),
+        await firstValueFrom(
+          this.api.exportResume(profile, job.title, job.company, this.skillsFirst(), application.id),
+        ),
       );
       this.exportedSnapshot.set(this.snapshot());
     } catch (error) {
