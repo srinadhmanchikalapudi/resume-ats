@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
 from platformdirs import user_data_dir
 from pydantic import BaseModel, field_validator
@@ -26,6 +27,11 @@ class Settings(BaseModel):
     # Optional per-task overrides; empty means "use the default model".
     extraction_model: str = ""
     rewrite_model: str = ""
+
+    def model_for(self, task: Literal["extraction", "analysis", "rewrite"]) -> str:
+        """The model to use for a task: its own setting if set, else the default, else any set model."""
+        specific = {"extraction": self.extraction_model, "rewrite": self.rewrite_model}.get(task, "")
+        return specific or self.model or self.extraction_model or self.rewrite_model
 
     @field_validator("base_url")
     @classmethod

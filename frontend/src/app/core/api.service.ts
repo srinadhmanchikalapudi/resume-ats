@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
+  AnalysisResult,
   ConnectionResult,
   Health,
   ImportResult,
@@ -59,5 +60,9 @@ export class ApiService {
 
   importResumeText(text: string) {
     return this.http.post<ImportResult>('/profile/import-text', { text });
+  }
+
+  analyzeJob(text: string) {
+    return this.http.post<AnalysisResult>('/jobs/analyze', { text });
   }
 }

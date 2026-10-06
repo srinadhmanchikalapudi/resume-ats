@@ -58,6 +58,21 @@ Tauri v2 shell (window + updater)
 
 - **Match estimate** — evidence-based (matched / missing requirements with quotes), explicitly *not* a vendor ATS score.
 
+## Job analysis (Phase 1, slice 2)
+
+`POST /jobs/analyze` takes a pasted posting and the saved master profile and runs two LLM steps:
+
+1. **Extraction** (extraction model): the posting becomes weighted requirements (required / preferred / nice),
+   ATS keywords, seniority and years required.
+2. **Matching** (default model): each requirement gets matched / partial / missing with evidence quoted from the
+   profile. The server **verifies every quote** against the cited profile entry; a claimed match whose quote is not
+   found becomes "unverified" and does not count, so a hallucinated match cannot inflate the result.
+
+Numbers are computed by code, not the model: importance-weighted coverage (3 / 1.5 / 0.5), required-item counts,
+years of experience from the profile's dates (overlaps counted once), and a literal keyword check against the
+profile text. Scores can still move a few points between runs because the model's judgement of borderline
+requirements varies, so the UI stresses the gap list over the exact number.
+
 ## Exports
 
 - DOCX via `python-docx` (single column, no tables, standard fonts, standard headings).

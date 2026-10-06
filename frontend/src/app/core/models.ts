@@ -106,3 +106,64 @@ export interface ImportResult {
   profile: Profile;
   warnings: string[];
 }
+
+export type Importance = 'required' | 'preferred' | 'nice';
+export type MatchStatus = 'matched' | 'partial' | 'missing' | 'unverified';
+
+export interface Requirement {
+  id: string;
+  text: string;
+  category: string;
+  importance: Importance;
+  keywords: string[];
+}
+
+export interface JobAnalysis {
+  title: string;
+  company: string;
+  location: string;
+  work_mode: string;
+  seniority: string;
+  years_required: number | null;
+  summary: string;
+  requirements: Requirement[];
+  responsibilities: string[];
+  keywords: string[];
+}
+
+export interface Evidence {
+  ref: string;
+  label: string;
+  quote: string;
+}
+
+export interface RequirementMatch {
+  requirement: Requirement;
+  status: MatchStatus;
+  evidence: Evidence[];
+  note: string;
+}
+
+export interface KeywordCheck {
+  present: string[];
+  missing: string[];
+}
+
+export interface Scores {
+  overall: number | null;
+  required_total: number;
+  required_matched: number;
+  required_partial: number;
+  required_missing: number;
+  candidate_years: number | null;
+  years_required: number | null;
+  years_short_by: number | null;
+}
+
+export interface AnalysisResult {
+  job: JobAnalysis;
+  matches: RequirementMatch[];
+  keywords: KeywordCheck;
+  scores: Scores;
+  warnings: string[];
+}

@@ -3,11 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 
 from .. import llm
-from ..config import load_settings
-from ..keystore import SecretStoreError
 from ..profile import importer, store
 from ..profile.extract_text import ExtractError, extract_text
 from ..profile.models import ImportResult, ImportTextIn, Profile, ProfileOut
+from .common import llm_access
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
@@ -47,19 +46,14 @@ async def import_text(request: Request, body: ImportTextIn) -> ImportResult:
 
 
 async def _parse(request: Request, text: str, warnings: list[str]) -> ImportResult:
-    settings = load_settings()
-    model = settings.extraction_model or settings.model
-    if not model:
-        raise HTTPException(status_code=400, detail="Choose a model in Settings first.")
-    try:
-        api_key = request.app.state.secret_store.get()
-    except SecretStoreError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    if not api_key:
-        raise HTTPException(status_code=400, detail="Add your API key in Settings first.")
+    access = llm_access(request, "extraction")
     try:
         return await importer.parse_resume(
-            text, base_url=settings.base_url, api_key=api_key, model=model, warnings=warnings
+            text,
+            base_url=access.base_url,
+            api_key=access.api_key,
+            model=access.model,
+            warnings=warnings,
         )
     except llm.LlmError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

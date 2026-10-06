@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from . import __version__, llm
 from .config import Settings, load_settings, save_settings
 from .keystore import KeychainStore, SecretStore, SecretStoreError
-from .routers import profile
+from .routers import jobs, profile
 
 # Origins the Tauri webview uses on each OS, plus the Angular dev server.
 ALLOWED_ORIGINS = [
@@ -104,5 +104,6 @@ def create_app(token: str | None = None, secret_store: SecretStore | None = None
         return await llm.check_connection(settings.base_url, key, settings.model)
 
     api.include_router(profile.router)
+    api.include_router(jobs.router)
     app.include_router(api)
     return app

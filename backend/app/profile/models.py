@@ -5,36 +5,15 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
+from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
-
-def _text(value: object) -> str:
-    return "" if value is None else str(value).strip()
-
-
-def _text_list(value: object) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [part.strip() for part in value.split(",") if part.strip()]
-    return [_text(item) for item in value if _text(item)]  # type: ignore[union-attr]
-
-
-def _list(value: object) -> object:
-    return [] if value is None else value
+from ..lenient import Lenient as _Lenient
+from ..lenient import Text, TextList
+from ..lenient import as_list as _list
 
 
 def _new_id() -> str:
     return uuid.uuid4().hex
-
-
-# LLM output is messy: nulls become "" / [], numbers become strings, unknown keys are dropped.
-Text = Annotated[str, BeforeValidator(_text)]
-TextList = Annotated[list[str], BeforeValidator(_text_list)]
-
-
-class _Lenient(BaseModel):
-    model_config = ConfigDict(extra="ignore")
 
 
 class Link(_Lenient):
