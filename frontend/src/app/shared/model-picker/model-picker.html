@@ -1,0 +1,41 @@
+<label class="field">
+  <span class="label">{{ label() }}</span>
+  <input
+    type="text"
+    autocomplete="off"
+    spellcheck="false"
+    [placeholder]="placeholder()"
+    [ngModel]="value()"
+    (ngModelChange)="value.set($event)"
+    (focus)="open.set(true)"
+    (blur)="close()"
+  />
+  @if (hint()) {
+    <span class="hint">{{ hint() }}</span>
+  }
+</label>
+
+@if (open() && matches().length > 0) {
+  <ul class="options" role="listbox">
+    @for (m of matches(); track m.id) {
+      <li role="option" (mousedown)="select(m); $event.preventDefault()">
+        <div class="id">{{ m.id }}</div>
+        <div class="meta">
+          <span>{{ m.name }}</span>
+          @if (m.context_length) {
+            <span>{{ formatContext(m.context_length) }}</span>
+          }
+          @if (m.prompt_price !== null) {
+            <span>in {{ formatPrice(m.prompt_price) }}</span>
+          }
+          @if (m.completion_price !== null) {
+            <span>out {{ formatPrice(m.completion_price) }}</span>
+          }
+          @if (m.supports_json === false) {
+            <span class="warn">no JSON mode</span>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+}

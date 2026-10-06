@@ -1,0 +1,16 @@
+{
+  "name": "resume-ats",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Root scripts for the Tauri shell; the Angular app lives in frontend/",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend start",
+    "build:frontend": "npm --prefix frontend run build",
+    "dev:backend": "python backend/run.py --port 8000",
+    "build:sidecar": "python scripts/build_sidecar.py",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

@@ -1,0 +1,107 @@
+<h1>Settings</h1>
+
+<section class="card">
+  <h2>OpenRouter API key</h2>
+  <p class="note">
+    Resume and job text is sent to OpenRouter and the model provider you choose below. Your key is stored in your
+    operating system's keychain, never in a file.
+  </p>
+
+  <p class="status" [class.ok]="hasApiKey()">
+    {{ hasApiKey() ? 'A key is saved.' : 'No key saved yet.' }}
+  </p>
+
+  <label class="field">
+    <span class="label">{{ hasApiKey() ? 'Replace key' : 'API key' }}</span>
+    <input
+      type="password"
+      autocomplete="off"
+      placeholder="sk-or-..."
+      [ngModel]="apiKey()"
+      (ngModelChange)="apiKey.set($event)"
+    />
+  </label>
+
+  <div class="actions">
+    <button type="button" class="primary" [disabled]="busy() || !apiKey().trim()" (click)="saveKey()">
+      Save key
+    </button>
+    @if (hasApiKey()) {
+      <button type="button" [disabled]="busy()" (click)="removeKey()">Remove key</button>
+    }
+  </div>
+
+  @if (keyNotice(); as notice) {
+    <p class="notice" [class.error]="notice.kind === 'error'">{{ notice.text }}</p>
+  }
+</section>
+
+<section class="card">
+  <h2>Models</h2>
+
+  @if (modelsNotice(); as text) {
+    <p class="notice error">{{ text }}</p>
+  } @else if (models().length > 0) {
+    <p class="note">{{ models().length }} models available. Search by name, or type any model ID.</p>
+  }
+
+  <app-model-picker
+    label="Default model"
+    hint="Used for everything unless a task-specific model is set below."
+    [models]="models()"
+    [(value)]="model"
+  />
+  <app-model-picker
+    label="Extraction model (optional)"
+    hint="Parsing resumes and job postings. A cheaper, faster model is usually enough."
+    [models]="models()"
+    [(value)]="extractionModel"
+  />
+  <app-model-picker
+    label="Rewriting model (optional)"
+    hint="Tailoring and rewriting resume content. A stronger model gives better writing."
+    [models]="models()"
+    [(value)]="rewriteModel"
+  />
+
+  <label class="field">
+    <span class="label">API base URL</span>
+    <input
+      type="text"
+      spellcheck="false"
+      [ngModel]="baseUrl()"
+      (ngModelChange)="baseUrl.set($event)"
+    />
+    <span class="hint">Defaults to OpenRouter. Any OpenAI-compatible server works.</span>
+  </label>
+
+  <div class="actions">
+    <button type="button" class="primary" [disabled]="busy()" (click)="saveSettings()">Save settings</button>
+    <button type="button" [disabled]="busy() || !hasApiKey() || !model()" (click)="testConnection()">
+      Test connection
+    </button>
+  </div>
+
+  @if (settingsNotice(); as notice) {
+    <p class="notice" [class.error]="notice.kind === 'error'">{{ notice.text }}</p>
+  }
+</section>
+
+<section class="card">
+  <h2>About</h2>
+  <p class="note">Version {{ version() || '…' }}</p>
+  <div class="actions">
+    <button
+      type="button"
+      [disabled]="updater.status() === 'checking'"
+      (click)="checkForUpdates()"
+    >
+      {{ updater.status() === 'checking' ? 'Checking…' : 'Check for updates' }}
+    </button>
+  </div>
+  @if (updater.error(); as text) {
+    <p class="notice error">{{ text }}</p>
+  } @else if (updater.lastCheckMessage(); as text) {
+    <p class="notice">{{ text }}</p>
+  }
+</section>

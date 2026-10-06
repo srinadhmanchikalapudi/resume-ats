@@ -1,0 +1,64 @@
+name: Release
+
+# Tag a version (git tag v0.1.0 && git push --tags) to build installers and publish a GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: macos-latest        # Apple Silicon (arm64)
+          - os: macos-15-intel      # Intel (x64); verify this runner label is still available
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Stamp version from tag
+        run: python scripts/set_version.py "${{ github.ref_name }}"
+
+      - name: Build Python sidecar
+        run: |
+          python -m pip install -e "backend[dev]"
+          python scripts/build_sidecar.py
+
+      - name: Install JS dependencies
+        run: |
+          npm ci
+          npm --prefix frontend ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Optional macOS signing + notarization (needs an Apple Developer account):
+          # APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+          # APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Resume ATS ${{ github.ref_name }}"
+          releaseBody: "See the assets below to download the installer for your OS."
+          releaseDraft: false
+          prerelease: false
