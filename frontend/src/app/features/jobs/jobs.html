@@ -96,6 +96,9 @@
       The estimate weighs required items 3×, preferred 1.5× and nice-to-have 0.5×. A model judges each match, so the
       number can move a few points between runs. Focus on the gaps below, not the exact score.
     </p>
+    <div class="actions">
+      <a class="button primary" routerLink="/tailor">Tailor resume for this job</a>
+    </div>
 
     @for (w of result.warnings; track w) {
       <p class="notice error">{{ w }}</p>

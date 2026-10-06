@@ -101,7 +101,15 @@ def clean_term(term: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"\([^)]*\)", " ", term)).strip(" ,;:")
 
 
-def _unique(terms: list[str]) -> list[str]:
+def has_term(term: str, text: str) -> bool:
+    """Whether `term` appears literally in `text` (case-insensitive, symbol-safe, plural-tolerant)."""
+    # Lookarounds instead of \b so terms like "C#", ".NET" and "Node.js" match correctly.
+    # An optional trailing "s" lets "Azure App Service" match "Azure App Services".
+    return re.search(rf"(?<![\w]){re.escape(term)}s?(?![\w])", text, flags=re.IGNORECASE) is not None
+
+
+def unique_terms(terms: list[str]) -> list[str]:
+    """Cleaned, de-duplicated keywords in order; descriptions too long to search literally are dropped."""
     seen: set[str] = set()
     result = []
     for raw in terms:
@@ -116,11 +124,13 @@ def _unique(terms: list[str]) -> list[str]:
 
 def check_keywords(job: JobAnalysis, profile_text: str) -> KeywordCheck:
     """Which of the posting's terms appear, as written, in the profile (what a keyword filter sees)."""
-    terms = _unique([*job.keywords, *(k for r in job.requirements for k in r.keywords)])[:MAX_KEYWORDS]
+    terms = job_terms(job)[:MAX_KEYWORDS]
     present, missing = [], []
     for term in terms:
-        # Lookarounds instead of \b so terms like "C#", ".NET" and "Node.js" match correctly.
-        # An optional trailing "s" lets "Azure App Service" match "Azure App Services".
-        pattern = rf"(?<![\w]){re.escape(term)}s?(?![\w])"
-        (present if re.search(pattern, profile_text, flags=re.IGNORECASE) else missing).append(term)
+        (present if has_term(term, profile_text) else missing).append(term)
     return KeywordCheck(present=present, missing=missing)
+
+
+def job_terms(job: JobAnalysis) -> list[str]:
+    """Every keyword the posting is searched on: its own list plus those inside each requirement."""
+    return unique_terms([*job.keywords, *(k for r in job.requirements for k in r.keywords)])

@@ -6,9 +6,34 @@ from .. import llm
 from ..jobs import analyzer, matcher, profile_index, scoring
 from ..jobs.models import AnalysisResult, AnalyzeIn
 from ..profile import store
+from ..tailor import service as tailor_service
+from ..tailor.models import TailoredResume, TailorRequest
 from .common import llm_access
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+
+@router.post("/tailor", response_model=TailoredResume)
+async def tailor(request: Request, body: TailorRequest) -> TailoredResume:
+    """A job-specific selection and rewording of the saved profile, verified against it."""
+    profile, _ = store.load_profile()
+    if profile.is_empty() or not profile.experience:
+        raise HTTPException(status_code=400, detail="Save a master profile with work experience first.")
+    if not body.analysis.job.requirements:
+        raise HTTPException(status_code=422, detail="Analyse a job posting first.")
+
+    access = llm_access(request, "rewrite")
+    try:
+        return await tailor_service.tailor_resume(
+            profile,
+            body.analysis,
+            body.length,
+            base_url=access.base_url,
+            api_key=access.api_key,
+            model=access.model,
+        )
+    except llm.LlmError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.post("/analyze", response_model=AnalysisResult)

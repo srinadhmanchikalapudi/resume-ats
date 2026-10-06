@@ -1,0 +1,178 @@
+<h1>Tailor resume</h1>
+<p class="note lead">
+  A version of your profile aimed at one job. It only selects, reorders and lightly rewords what your profile already
+  says. Nothing is added. Review every change before you use it.
+</p>
+
+@if (!jobs.result()) {
+  <div class="callout">
+    Analyse a job posting on the <a routerLink="/jobs">Job match</a> page first. Tailoring uses that analysis.
+  </div>
+} @else {
+  <section class="card">
+    <div>
+      <h2>{{ job()?.title || 'Untitled role' }}</h2>
+      <p class="note">
+        {{ job()?.company || 'Company not stated' }} · match estimate {{ jobs.result()?.scores?.overall ?? '–' }}
+      </p>
+    </div>
+
+    <fieldset class="lengths">
+      <legend class="label">Length</legend>
+      @for (option of lengths; track option.value) {
+        <label class="length" [class.selected]="state.length() === option.value">
+          <input
+            type="radio"
+            name="length"
+            [value]="option.value"
+            [checked]="state.length() === option.value"
+            (change)="state.length.set(option.value)"
+          />
+          <span>
+            <strong>{{ option.label }}</strong>
+            <span class="note">{{ option.hint }}</span>
+          </span>
+        </label>
+      }
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="primary" [disabled]="state.generating()" (click)="generate()">
+        {{ state.generating() ? 'Tailoring…' : state.resume() ? 'Generate again' : 'Generate tailored resume' }}
+      </button>
+    </div>
+    @if (state.generating()) {
+      <p class="busy" role="status">Choosing and rewording bullets for this job. About 20 to 30 seconds.</p>
+    }
+    @if (state.error(); as text) {
+      <p class="notice error" role="alert">{{ text }}</p>
+    }
+    @if (state.resume()) {
+      <p class="note">Generating again replaces the edits below.</p>
+    }
+  </section>
+
+  @if (state.resume(); as resume) {
+    @if (resume.warnings.length > 0) {
+      <div class="callout">
+        @for (w of resume.warnings; track w) {
+          <p>{{ w }}</p>
+        }
+      </div>
+    }
+
+    <section class="card">
+      <h2>Summary</h2>
+      <textarea rows="4" aria-label="Summary" [(ngModel)]="resume.summary.text"></textarea>
+      <div class="choice">
+        <span class="tag" [class]="'tag ' + textState(resume.summary)">{{ textState(resume.summary) }}</span>
+        @if (resume.summary.proposed !== resume.summary.original) {
+          <button type="button" class="small" (click)="useOriginal(resume.summary)">Use my original</button>
+          <button type="button" class="small" (click)="useProposed(resume.summary)">Use proposed</button>
+        }
+      </div>
+      @for (f of resume.summary.flags; track f.message) {
+        <p class="flag" [class.reverted]="f.kind === 'reverted'">{{ f.message }}</p>
+      }
+      @if (resume.summary.proposed !== resume.summary.original && textState(resume.summary) !== 'original') {
+        <details>
+          <summary>Your original summary</summary>
+          <p class="orig-text">{{ resume.summary.original || '(none)' }}</p>
+        </details>
+      }
+    </section>
+
+    @for (role of resume.roles; track role.id) {
+      <section class="card">
+        <div class="role-head">
+          <h2>{{ role.title }}{{ role.company ? ' · ' + role.company : '' }}</h2>
+          <span class="note">{{ includedCount(role) }} of {{ role.bullets.length + role.dropped.length }} bullets</span>
+        </div>
+
+        @for (bullet of role.bullets; track bullet.key; let i = $index) {
+          <div class="bullet" [class.excluded]="!bullet.included">
+            <input
+              type="checkbox"
+              class="include"
+              aria-label="Include this bullet"
+              [(ngModel)]="bullet.included"
+            />
+            <div class="bullet-body">
+              <textarea
+                [rows]="rowsFor(bullet.text)"
+                aria-label="Bullet text"
+                [disabled]="!bullet.included"
+                [(ngModel)]="bullet.text"
+              ></textarea>
+              <div class="choice">
+                <span class="tag" [class]="'tag ' + textState(bullet)">{{ textState(bullet) }}</span>
+                @if (bullet.proposed !== bullet.original) {
+                  <button type="button" class="small" (click)="useOriginal(bullet)">Use my original</button>
+                  <button type="button" class="small" (click)="useProposed(bullet)">Use proposed</button>
+                }
+                <span class="spacer"></span>
+                <button type="button" class="small" aria-label="Move up" [disabled]="i === 0" (click)="move(role, i, -1)">↑</button>
+                <button type="button" class="small" aria-label="Move down" [disabled]="i === role.bullets.length - 1" (click)="move(role, i, 1)">↓</button>
+              </div>
+              @for (f of bullet.flags; track f.message) {
+                <p class="flag" [class.reverted]="f.kind === 'reverted'">{{ f.message }}</p>
+              }
+              @if (bullet.proposed !== bullet.original) {
+                <p class="orig-text"><strong>Original:</strong> {{ bullet.original }}</p>
+              }
+            </div>
+          </div>
+        }
+
+        @if (role.dropped.length > 0) {
+          <details>
+            <summary>Left out ({{ role.dropped.length }})</summary>
+            @for (d of role.dropped; track d.source) {
+              <div class="dropped">
+                <span>{{ d.original }}</span>
+                <button type="button" class="small" (click)="restore(role, d)">Add back</button>
+              </div>
+            }
+          </details>
+        }
+      </section>
+    }
+
+    <section class="card">
+      <h2>Skills</h2>
+      <p class="note">Only skills from your profile appear here, ordered for this job. Edit the lists if you like.</p>
+      @for (group of resume.skills; track $index) {
+        <label class="field">
+          <span class="label">{{ group.category }}</span>
+          <input
+            type="text"
+            [value]="listToComma(group.items)"
+            (change)="setSkills(group, $any($event.target).value)"
+          />
+        </label>
+      }
+    </section>
+
+    <section class="card">
+      <h2>Education, certifications and projects</h2>
+      <p class="note">
+        Included as they are in your profile ({{ resume.education.length }} education,
+        {{ resume.certifications.length }} certification{{ resume.certifications.length === 1 ? '' : 's' }},
+        {{ resume.projects.length }} project{{ resume.projects.length === 1 ? '' : 's' }}). Change them on the
+        <a routerLink="/profile">Profile</a> page.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Preview</h2>
+      <p class="note">
+        Plain text, single column, standard headings. This is what the finished resume says.
+      </p>
+      <textarea #previewBox class="preview" readonly rows="22" aria-label="Resume preview" [value]="preview()"></textarea>
+      <div class="actions">
+        <button type="button" (click)="copy()">{{ copied() ? 'Copied' : 'Copy text' }}</button>
+      </div>
+      <p class="note">DOCX and PDF files you can submit are the next step.</p>
+    </section>
+  }
+}

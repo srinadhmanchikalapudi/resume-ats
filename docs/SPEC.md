@@ -73,6 +73,22 @@ years of experience from the profile's dates (overlaps counted once), and a lite
 profile text. Scores can still move a few points between runs because the model's judgement of borderline
 requirements varies, so the UI stresses the gap list over the exact number.
 
+## Tailoring (Phase 1, slice 3)
+
+`POST /jobs/tailor` takes a job analysis and the saved profile and asks the rewriting model to select, order and
+lightly reword the profile's content. The model proposes; the server verifies:
+
+- every output bullet must cite the number of an original bullet, so no bullet can be invented, merged or duplicated;
+- a rewrite that adds a number not in the original is reverted;
+- a rewrite that adds a posting keyword found nowhere in the profile (for example Kubernetes) is reverted;
+- a keyword found elsewhere in the profile, or belonging to a requirement the match check verified, is kept but
+  flagged for review and starts unselected, so the user opts in;
+- skills come only from the profile; a summary that claims unsupported numbers or terms falls back to the original;
+- length presets cap bullets per role (concise 5/4/3, standard 8/6/5/4, full keeps all).
+
+Code cannot detect every invented claim (for example "led" for "contributed"), so the UI shows the original beside
+every proposal and the user decides item by item. The edited result is a plain `Profile`, ready for export.
+
 ## Exports
 
 - DOCX via `python-docx` (single column, no tables, standard fonts, standard headings).

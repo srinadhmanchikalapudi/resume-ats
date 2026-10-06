@@ -8,8 +8,10 @@ import {
   ModelInfo,
   Profile,
   ProfileOut,
+  ResumeLength,
   Settings,
   SettingsOut,
+  TailoredResume,
 } from './models';
 
 @Injectable({ providedIn: 'root' })
@@ -64,5 +66,9 @@ export class ApiService {
 
   analyzeJob(text: string) {
     return this.http.post<AnalysisResult>('/jobs/analyze', { text });
+  }
+
+  tailorResume(analysis: AnalysisResult, length: ResumeLength) {
+    return this.http.post<TailoredResume>('/jobs/tailor', { analysis, length });
   }
 }

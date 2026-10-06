@@ -167,3 +167,51 @@ export interface AnalysisResult {
   scores: Scores;
   warnings: string[];
 }
+
+export type ResumeLength = 'concise' | 'standard' | 'full';
+
+export interface Flag {
+  kind: 'reverted' | 'review';
+  message: string;
+}
+
+export interface TailoredBullet {
+  source: number;
+  original: string;
+  proposed: string;
+  flags: Flag[];
+}
+
+export interface DroppedBullet {
+  source: number;
+  original: string;
+}
+
+export interface TailoredRole {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  start: string;
+  end: string;
+  current: boolean;
+  bullets: TailoredBullet[];
+  dropped: DroppedBullet[];
+}
+
+export interface TailoredSummary {
+  original: string;
+  proposed: string;
+  flags: Flag[];
+}
+
+export interface TailoredResume {
+  contact: Contact;
+  summary: TailoredSummary;
+  roles: TailoredRole[];
+  skills: SkillGroup[];
+  education: Education[];
+  certifications: Certification[];
+  projects: Project[];
+  warnings: string[];
+}
