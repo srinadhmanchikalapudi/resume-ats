@@ -80,6 +80,19 @@
             }
           </ul>
         }
+        @if (fileChecks().length > 0) {
+          <div class="file-checks">
+            <strong>How a tracking system sees the file you uploaded</strong>
+            <ul>
+              @for (c of fileChecks(); track c.name) {
+                <li [class.bad]="!c.ok">
+                  <span class="mark" aria-hidden="true">{{ c.ok ? '✓' : '!' }}</span>
+                  <span><strong>{{ c.name }}.</strong> {{ c.detail }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
       </div>
     }
 
@@ -270,6 +283,8 @@
         </div>
       </section>
     </div>
+
+    <app-health-panel [source]="healthSource" [snapshot]="healthSnapshot()" />
 
     <div class="savebar">
       <span class="status" [class.unsaved]="dirty()">

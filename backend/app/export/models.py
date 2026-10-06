@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from ..checks import Check
 from ..profile.models import Profile
 
 Paper = Literal["letter", "a4"]
@@ -17,12 +18,6 @@ class ExportRequest(BaseModel):
     skills_first: bool = True  # Skills before Experience (True) or after it (False)
     # When set, the files go into that application's folder as its next numbered version.
     application_id: int | None = None
-
-
-class Check(BaseModel):
-    name: str
-    ok: bool
-    detail: str = ""
 
 
 class ExportedFile(BaseModel):

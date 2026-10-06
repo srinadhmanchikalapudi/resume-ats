@@ -11,6 +11,7 @@ import {
   ConnectionResult,
   ExportResult,
   Health,
+  HealthReport,
   ImportResult,
   ModelInfo,
   Profile,
@@ -94,6 +95,10 @@ export class ApiService {
       skills_first: skillsFirst,
       application_id: applicationId,
     });
+  }
+
+  checkHealth(profile: Profile) {
+    return this.http.post<HealthReport>('/health-check', { profile });
   }
 
   createApplication(postingText: string, analysis: AnalysisResult | null) {

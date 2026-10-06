@@ -1,0 +1,94 @@
+<section class="card">
+  <div class="head">
+    <div>
+      <h2>Resume health</h2>
+      <p class="note">
+        A writing-quality check based on common resume advice: numbers, action verbs, clarity, specifics and
+        completeness. It is not a score from any real applicant tracking system, and it runs on your computer.
+      </p>
+    </div>
+    <button type="button" class="primary" [disabled]="checking()" (click)="check()">
+      {{ checking() ? 'Checking…' : report() ? 'Check again' : 'Check resume health' }}
+    </button>
+  </div>
+
+  @if (error(); as text) {
+    <p class="notice error" role="alert">{{ text }}</p>
+  }
+
+  @if (report(); as r) {
+    @if (changedSinceCheck()) {
+      <p class="flag">You have edited the resume since this check. Check again to update the score.</p>
+    }
+
+    <div class="summary">
+      <div class="score" [attr.aria-label]="'Resume health ' + r.overall + ' out of 100, ' + r.band">
+        <div class="score-number" [class]="'score-number ' + scoreTone(r.overall)">{{ r.overall }}</div>
+        <div class="score-band">{{ r.band }}</div>
+      </div>
+      <div class="stats">
+        <span><strong>{{ r.stats.bullets }}</strong> bullets</span>
+        <span>
+          <strong>{{ r.stats.with_metric }}</strong> with a number ({{ percent(r.stats.metric_rate) }})
+        </span>
+        <span><strong>{{ r.stats.strong_verb_bullets }}</strong> open with a strong verb</span>
+        <span>about <strong>{{ r.stats.average_bullet_words }}</strong> words per bullet</span>
+      </div>
+    </div>
+
+    @if (r.top_fixes.length > 0) {
+      <div class="fixes">
+        <h3>Fix these first</h3>
+        <ol>
+          @for (fix of r.top_fixes; track fix) {
+            <li>{{ fix }}</li>
+          }
+        </ol>
+      </div>
+    }
+
+    @for (c of r.categories; track c.key) {
+      <details class="category" [open]="c.findings.length > 0 && (c.score < 80 || c.findings[0].severity === 'high')">
+        <summary>
+          <span class="cat-label">{{ c.label }}</span>
+          <span class="bar" aria-hidden="true">
+            <span class="fill" [class]="'fill ' + scoreTone(c.score)" [style.width.%]="c.score"></span>
+          </span>
+          <span class="cat-score">{{ c.score }}</span>
+        </summary>
+        <p class="note">{{ c.summary }}</p>
+
+        @if (c.findings.length === 0) {
+          <p class="ok">Nothing to fix here.</p>
+        }
+        @for (f of c.findings; track f.rule) {
+          <div class="finding">
+            <div class="finding-head">
+              <span class="severity" [class]="'severity ' + f.severity">{{ severityLabels[f.severity] }}</span>
+              <strong>{{ f.title }}</strong>
+            </div>
+            <p class="note">{{ f.detail }}</p>
+            @if (f.examples.length > 0) {
+              <ul class="examples">
+                @for (e of f.examples; track $index) {
+                  <li>
+                    <span class="where">{{ e.where }}</span>
+                    @if (e.text) {
+                      <span class="quote">{{ e.text }}</span>
+                    }
+                    @if (e.hint) {
+                      <span class="hint">{{ e.hint }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+              @if (f.count > f.examples.length) {
+                <p class="note">…and {{ f.count - f.examples.length }} more.</p>
+              }
+            }
+          </div>
+        }
+      </details>
+    }
+  }
+</section>

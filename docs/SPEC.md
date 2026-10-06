@@ -133,6 +133,38 @@ and relationships, and a plain folder you can browse without the app.
   `GET /applications/{id}/versions/{vid}`, `PUT /applications/{id}/versions/{vid}/submitted`.
 - **Desktop permissions:** the app may open only paths inside its own data folder, and only http(s) links.
 
+## Resume health and file checks (Phase 3)
+
+**Resume health** (`POST /health-check`, `backend/app/health/`) scores a resume out of 100 from five weighted categories:
+impact and numbers (30), action verbs (20), clarity and length (20), specificity (15) and completeness and
+consistency (15). It is deterministic: no model calls, nothing stored, the same input always gives the same report. It is
+labelled a writing-quality check, never an ATS score.
+
+- **Numbers:** a bullet counts as quantified only for a real quantity (a percentage, money, a multiplier, a before-and-after,
+  a counted thing, or a spelled-out number). Version numbers (".NET 6", "Angular 12") and standards ("ISO 27001") are
+  excluded. For bullets without a number, the report asks the question that would produce one ("By how much?" after
+  "Optimized"); it never suggests a figure.
+- **Verbs:** strong accomplishment verbs, past-tense openers, and duty openers ("Responsible for", "Worked on") flagged;
+  gerunds, passive voice and overused opening verbs reported.
+- **Clarity and specificity:** bullets over 35 words, multi-sentence bullets, filler and stock phrases, buzzwords that read
+  as boilerplate, first-person wording, and bullets with no number or named technology.
+- **Completeness:** contact details, summary, skills, missing or inconsistent dates (compared separately for jobs and
+  education), roles out of order, near-duplicate bullets, and gaps of six months or more between roles unless education
+  covers them. Technology lists such as "Environment: C#, .NET" are not scored as bullets.
+- **Where:** an on-demand panel on the Profile page and on the Tailor page (checking the resume as it will be exported).
+  It tells the user when edits since the last check make the score out of date.
+- Calibrated against a real resume: the findings were reviewed bullet by bullet and false positives (version numbers, tech
+  lists, irregular past-tense verbs) were fixed with tests.
+
+**Uploaded-file checks** (`backend/app/profile/file_checks.py`) read the file the user imports and report how an applicant
+tracking system would see it: single column, tables, images and text boxes, header and footer text, fonts, text
+encoding, and length. They need no model and never block an import.
+
+- Multi-column PDFs are detected from pypdf's layout-aware text (a wide gap with long text on both sides, on a real
+  share of the page). A first version that inferred columns from raw text positions passed synthetic tests but missed
+  real Word-exported two-column and table-sidebar resumes, so the detector is verified against genuine Word PDFs: single
+  column passes; Word's two-column flow and a table-sidebar template are flagged.
+
 ## Phases
 
 | Phase | Scope |
@@ -140,7 +172,7 @@ and relationships, and a plain folder you can browse without the app.
 | 0 | Skeleton: Tauri + FastAPI sidecar + Angular. Settings (key, model). CI builds Windows + macOS installers; update prompt works end to end. |
 | 1 | Master profile import (PDF/DOCX → structured JSON), job paste, match analysis, tailoring, DOCX/PDF export. **Done.** |
 | 2 | Application archive: SQLite + folders, list/search, status tracking, version history. **Done.** |
-| 3 | Quality checks: resume health, ATS-safety checks on PDF/DOCX, specificity and quantification feedback. |
+| 3 | Quality checks: resume health, ATS-safety checks on PDF/DOCX, specificity and quantification feedback. **Done.** |
 | 4 | Extras: LinkedIn text comparison, interview-prep notes, cover letters. |
 
 ## Release & update

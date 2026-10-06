@@ -105,6 +105,8 @@ export interface ProfileOut {
 export interface ImportResult {
   profile: Profile;
   warnings: string[];
+  /** How readable the uploaded file itself is for applicant tracking systems. Empty for pasted text. */
+  file_checks: Check[];
 }
 
 export type Importance = 'required' | 'preferred' | 'nice';
@@ -190,6 +192,50 @@ export interface ExportResult {
   application_id: number | null;
   version_id: number | null;
   version_number: number | null;
+}
+
+export type HealthSeverity = 'high' | 'medium' | 'low' | 'info';
+
+export interface HealthExample {
+  where: string;
+  text: string;
+  hint: string;
+}
+
+export interface HealthFinding {
+  rule: string;
+  severity: HealthSeverity;
+  title: string;
+  detail: string;
+  count: number;
+  examples: HealthExample[];
+}
+
+export interface HealthCategory {
+  key: string;
+  label: string;
+  score: number;
+  weight: number;
+  summary: string;
+  findings: HealthFinding[];
+}
+
+export interface HealthStats {
+  bullets: number;
+  words: number;
+  average_bullet_words: number;
+  with_metric: number;
+  metric_rate: number;
+  strong_verb_bullets: number;
+  weak_opener_bullets: number;
+}
+
+export interface HealthReport {
+  overall: number;
+  band: string;
+  categories: HealthCategory[];
+  top_fixes: string[];
+  stats: HealthStats;
 }
 
 export type ApplicationStatus =

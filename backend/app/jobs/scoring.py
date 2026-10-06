@@ -25,7 +25,7 @@ _PRESENT = {"present", "current", "now", "today", "ongoing"}
 # --- years of experience ------------------------------------------------------------------------
 
 
-def _month_index(text: str, today: date) -> int | None:
+def month_index(text: str, today: date) -> int | None:
     """Months since year 0 for strings like "Jan 2020", "June 2018", "2016", "03/2021"; else None."""
     cleaned = text.strip().lower()
     if not cleaned:
@@ -50,8 +50,8 @@ def candidate_years(profile: Profile, today: date | None = None) -> float | None
     today = today or datetime.now().astimezone().date()
     spans: list[tuple[int, int]] = []
     for role in profile.experience:
-        start = _month_index(role.start, today)
-        end = _month_index("present" if role.current else role.end, today)
+        start = month_index(role.start, today)
+        end = month_index("present" if role.current else role.end, today)
         if start is not None and end is not None and end >= start:
             spans.append((start, end))
     if not spans:

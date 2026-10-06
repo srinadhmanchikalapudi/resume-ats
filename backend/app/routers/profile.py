@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Request, UploadFile
 from .. import llm
 from ..profile import importer, store
 from ..profile.extract_text import ExtractError, extract_text
+from ..profile.file_checks import check_upload
 from ..profile.models import ImportResult, ImportTextIn, Profile, ProfileOut
 from .common import llm_access
 
@@ -34,7 +35,10 @@ async def import_file(request: Request, file: UploadFile) -> ImportResult:
         extracted = extract_text(file.filename or "", data)
     except ExtractError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return await _parse(request, extracted.text, extracted.warnings)
+    result = await _parse(request, extracted.text, extracted.warnings)
+    # Read off the file itself, independent of the model: how an applicant tracking system would see this upload.
+    result.file_checks = check_upload(file.filename or "", data)
+    return result
 
 
 @router.post("/import-text", response_model=ImportResult)

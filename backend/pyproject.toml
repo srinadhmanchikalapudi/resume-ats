@@ -39,3 +39,7 @@ asyncio_mode = "auto"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint.per-file-ignores]
+# Word lists are kept as plain split strings so the vocabulary stays easy to read and edit.
+"app/health/lexicon.py" = ["SIM905"]

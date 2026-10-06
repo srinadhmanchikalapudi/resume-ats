@@ -4,7 +4,8 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/errors';
-import { Experience, ImportResult, Profile } from '../../core/models';
+import { Check, Experience, ImportResult, Profile } from '../../core/models';
+import { HealthPanel } from '../health/health-panel';
 import {
   blankCertification,
   blankEducation,
@@ -26,7 +27,7 @@ const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
 
 @Component({
   selector: 'app-profile',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, HealthPanel],
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
 })
@@ -42,6 +43,7 @@ export class ProfilePage implements OnInit {
   protected readonly savedAt = signal<string | null>(null);
   protected readonly isDraft = signal(false);
   protected readonly warnings = signal<string[]>([]);
+  protected readonly fileChecks = signal<Check[]>([]);
   protected readonly importing = signal(false);
   protected readonly saving = signal(false);
   protected readonly dragging = signal(false);
@@ -52,6 +54,10 @@ export class ProfilePage implements OnInit {
   private readonly hasModel = signal(false);
 
   protected readonly needsSetup = computed(() => !this.hasKey() || !this.hasModel());
+  /** What the health panel checks: the profile as it is in the editor right now, saved or not. */
+  protected readonly healthSource = (): Profile => this.profile();
+  protected readonly healthSnapshot = (): string => JSON.stringify(this.healthSource());
+
   protected readonly savedLabel = computed(() => {
     const value = this.savedAt();
     return value ? `Last saved ${new Date(value).toLocaleString()}` : 'Not saved yet';
@@ -135,6 +141,7 @@ export class ProfilePage implements OnInit {
       const result = await call();
       this.profile.set(result.profile);
       this.warnings.set(result.warnings);
+      this.fileChecks.set(result.file_checks ?? []);
       this.isDraft.set(true);
       this.dirty.set(true);
       this.editing.set(true);
@@ -203,6 +210,7 @@ export class ProfilePage implements OnInit {
       this.dirty.set(false);
       this.isDraft.set(false);
       this.warnings.set([]);
+      this.fileChecks.set([]);
       this.saveNotice.set('Profile saved.');
     } catch (error) {
       this.error.set(errorMessage(error));
@@ -221,6 +229,7 @@ export class ProfilePage implements OnInit {
       this.dirty.set(false);
       this.isDraft.set(false);
       this.warnings.set([]);
+      this.fileChecks.set([]);
       this.saveNotice.set(null);
     } catch (error) {
       this.error.set(errorMessage(error));

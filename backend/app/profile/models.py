@@ -7,6 +7,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
+from ..checks import Check
 from ..lenient import Lenient as _Lenient
 from ..lenient import Text, TextList
 from ..lenient import as_list as _list
@@ -101,6 +102,8 @@ class ProfileOut(BaseModel):
 class ImportResult(BaseModel):
     profile: Profile
     warnings: list[str] = Field(default_factory=list)
+    # How readable the uploaded file itself is for applicant tracking systems (empty for pasted text).
+    file_checks: list[Check] = Field(default_factory=list)
 
 
 class ImportTextIn(BaseModel):

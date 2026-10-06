@@ -3,9 +3,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../../core/errors';
 import { FileActions } from '../../core/file-actions.service';
-import { DroppedBullet, ExportedFile, ResumeLength, SkillGroup } from '../../core/models';
+import { DroppedBullet, ExportedFile, Profile, ResumeLength, SkillGroup } from '../../core/models';
+import { HealthPanel } from '../health/health-panel';
 import { JobAnalysisState } from '../jobs/job-analysis.state';
-import { commaToList, listToComma, moveItem } from '../profile/profile-utils';
+import { blankProfile, commaToList, listToComma, moveItem } from '../profile/profile-utils';
 import { TailorState } from './tailor.state';
 import { EditableBullet, EditableRole, addBack, textState, toPlainText, toProfile } from './tailor-utils';
 
@@ -17,7 +18,7 @@ interface LengthOption {
 
 @Component({
   selector: 'app-tailor',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, HealthPanel],
   templateUrl: './tailor.html',
   styleUrl: './tailor.scss',
 })
@@ -72,6 +73,13 @@ export class TailorPage {
   protected includedCount(role: EditableRole): number {
     return role.bullets.filter((bullet: EditableBullet) => bullet.included).length;
   }
+
+  /** The resume as it will be exported, for the health check. */
+  protected readonly healthSource = (): Profile => {
+    const resume = this.state.resume();
+    return resume ? toProfile(resume) : blankProfile();
+  };
+  protected readonly healthSnapshot = (): string => JSON.stringify(this.healthSource());
 
   /** The finished resume as plain text. Recomputed on every change detection pass, which is cheap here. */
   protected preview(): string {
