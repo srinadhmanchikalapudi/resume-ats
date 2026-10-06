@@ -1,12 +1,12 @@
 import sqlite3
 
 import pytest
+from factories import RESUME, make_docx
 
 from app import db, llm
 from app.config import data_dir
 from app.profile import store
 from app.profile.models import Experience, ImportResult, Profile
-from tests.test_extract_text import RESUME, make_docx
 
 SAMPLE = Profile.model_validate(
     {
