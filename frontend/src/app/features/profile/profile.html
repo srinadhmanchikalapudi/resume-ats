@@ -1,0 +1,293 @@
+<h1>Master profile</h1>
+<p class="note lead">
+  Your career facts, stored once. Tailored resumes only select and rephrase what is here, so keep it complete and
+  accurate. Nothing is saved until you click Save.
+</p>
+
+@if (needsSetup()) {
+  <div class="callout">
+    Importing a resume needs an API key and a model. <a routerLink="/settings">Open Settings</a>
+  </div>
+}
+
+@if (error(); as text) {
+  <p class="notice error" role="alert">{{ text }}</p>
+}
+
+@if (loading()) {
+  <p class="note">Loading…</p>
+} @else {
+  @if (!editing() || showImport()) {
+    <section class="card">
+      <h2>{{ editing() ? 'Re-import from a resume' : 'Import your resume' }}</h2>
+
+      @if (importing()) {
+        <p class="busy" role="status">
+          Reading your resume with the model… this can take up to a minute.
+        </p>
+      } @else {
+        <div
+          class="dropzone"
+          [class.dragging]="dragging()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="dragging.set(false)"
+          (drop)="onDrop($event)"
+        >
+          <p>Drop a PDF, DOCX or text file here, or</p>
+          <label class="button primary">
+            Choose file
+            <input type="file" accept=".pdf,.docx,.txt,.md" hidden (change)="onFileChosen($event)" />
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="label">Or paste your resume text</span>
+          <textarea
+            rows="6"
+            placeholder="Paste the full text of your resume"
+            [ngModel]="pasteText()"
+            (ngModelChange)="pasteText.set($event)"
+          ></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="button" class="primary" [disabled]="pasteText().trim().length < 40" (click)="importPasted()">
+            Import pasted text
+          </button>
+          @if (!editing()) {
+            <button type="button" (click)="startBlank()">Start from a blank profile</button>
+          } @else {
+            <button type="button" (click)="showImport.set(false)">Cancel</button>
+          }
+        </div>
+        <p class="note">
+          Your resume text is sent to the model you chose in Settings to extract the structure. You review
+          everything before it is saved.
+        </p>
+      }
+    </section>
+  }
+
+  @if (editing()) {
+    @if (isDraft()) {
+      <div class="callout">
+        <strong>Draft from your resume.</strong> Check every section against the original before saving. The
+        model can misread layouts.
+        @if (warnings().length > 0) {
+          <ul>
+            @for (w of warnings(); track w) {
+              <li>{{ w }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    <div class="editor" (input)="markDirty()" (change)="markDirty()">
+      <section class="card">
+        <h2>Contact</h2>
+        <div class="grid2">
+          <label class="field"><span class="label">Name</span><input type="text" [(ngModel)]="profile().contact.name" /></label>
+          <label class="field"><span class="label">Email</span><input type="text" [(ngModel)]="profile().contact.email" /></label>
+          <label class="field"><span class="label">Phone</span><input type="text" [(ngModel)]="profile().contact.phone" /></label>
+          <label class="field"><span class="label">Location</span><input type="text" [(ngModel)]="profile().contact.location" /></label>
+        </div>
+
+        <span class="label">Links</span>
+        @for (link of profile().contact.links; track $index; let i = $index) {
+          <div class="row">
+            <input type="text" placeholder="Label (LinkedIn)" aria-label="Link label" [(ngModel)]="link.label" />
+            <input type="text" placeholder="URL" aria-label="Link URL" [(ngModel)]="link.url" />
+            <button type="button" class="small" aria-label="Remove link" (click)="remove(profile().contact.links, i)">✕</button>
+          </div>
+        }
+        <div class="actions">
+          <button type="button" class="small" (click)="add(profile().contact.links, blankLink)">+ Add link</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Summary</h2>
+        <textarea rows="4" aria-label="Summary" [(ngModel)]="profile().summary"></textarea>
+      </section>
+
+      <section class="card">
+        <h2>Experience</h2>
+        @for (e of profile().experience; track e.id; let i = $index) {
+          <div class="item">
+            <div class="item-head">
+              <strong>{{ e.title || 'New role' }}{{ e.company ? ' · ' + e.company : '' }}</strong>
+              <span class="item-actions">
+                <button type="button" class="small" aria-label="Move up" [disabled]="i === 0" (click)="move(profile().experience, i, -1)">↑</button>
+                <button type="button" class="small" aria-label="Move down" [disabled]="i === profile().experience.length - 1" (click)="move(profile().experience, i, 1)">↓</button>
+                <button type="button" class="small" aria-label="Remove role" (click)="remove(profile().experience, i)">✕</button>
+              </span>
+            </div>
+            <div class="grid2">
+              <label class="field"><span class="label">Title</span><input type="text" [(ngModel)]="e.title" /></label>
+              <label class="field"><span class="label">Company</span><input type="text" [(ngModel)]="e.company" /></label>
+              <label class="field"><span class="label">Location</span><input type="text" [(ngModel)]="e.location" /></label>
+              <div class="dates">
+                <label class="field"><span class="label">Start</span><input type="text" placeholder="e.g. Jan 2020" [(ngModel)]="e.start" /></label>
+                <label class="field">
+                  <span class="label">End</span>
+                  <input
+                    type="text"
+                    [placeholder]="e.current ? 'Present' : 'e.g. Mar 2023'"
+                    [disabled]="e.current"
+                    [(ngModel)]="e.end"
+                  />
+                </label>
+              </div>
+            </div>
+            <label class="check">
+              <input type="checkbox" [ngModel]="e.current" (ngModelChange)="setCurrent(e, $event)" />
+              I currently work here (end date shows as Present)
+            </label>
+            <label class="field">
+              <span class="label">Bullets (one per line)</span>
+              <textarea
+                [rows]="rowsFor(e.bullets)"
+                [value]="listToLines(e.bullets)"
+                (change)="e.bullets = linesToList($any($event.target).value)"
+              ></textarea>
+            </label>
+          </div>
+        }
+        <div class="actions">
+          <button type="button" (click)="add(profile().experience, blankExperience)">+ Add role</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Education</h2>
+        @for (ed of profile().education; track ed.id; let i = $index) {
+          <div class="item">
+            <div class="item-head">
+              <strong>{{ ed.school || 'New school' }}</strong>
+              <span class="item-actions">
+                <button type="button" class="small" aria-label="Move up" [disabled]="i === 0" (click)="move(profile().education, i, -1)">↑</button>
+                <button type="button" class="small" aria-label="Move down" [disabled]="i === profile().education.length - 1" (click)="move(profile().education, i, 1)">↓</button>
+                <button type="button" class="small" aria-label="Remove education" (click)="remove(profile().education, i)">✕</button>
+              </span>
+            </div>
+            <div class="grid2">
+              <label class="field"><span class="label">School</span><input type="text" [(ngModel)]="ed.school" /></label>
+              <label class="field"><span class="label">Degree</span><input type="text" [(ngModel)]="ed.degree" /></label>
+              <label class="field"><span class="label">Field of study</span><input type="text" [(ngModel)]="ed.field" /></label>
+              <label class="field"><span class="label">Location</span><input type="text" [(ngModel)]="ed.location" /></label>
+              <label class="field"><span class="label">Start</span><input type="text" [(ngModel)]="ed.start" /></label>
+              <label class="field"><span class="label">End</span><input type="text" [(ngModel)]="ed.end" /></label>
+            </div>
+            <label class="field">
+              <span class="label">Details (one per line)</span>
+              <textarea
+                [rows]="rowsFor(ed.details)"
+                [value]="listToLines(ed.details)"
+                (change)="ed.details = linesToList($any($event.target).value)"
+              ></textarea>
+            </label>
+          </div>
+        }
+        <div class="actions">
+          <button type="button" (click)="add(profile().education, blankEducation)">+ Add education</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Skills</h2>
+        @for (group of profile().skills; track $index; let i = $index) {
+          <div class="row">
+            <input type="text" placeholder="Category (Languages)" aria-label="Skill category" [(ngModel)]="group.category" />
+            <input
+              type="text"
+              class="wide"
+              placeholder="Comma-separated: Python, C#, Azure"
+              aria-label="Skills"
+              [value]="listToComma(group.items)"
+              (change)="group.items = commaToList($any($event.target).value)"
+            />
+            <button type="button" class="small" aria-label="Remove skill group" (click)="remove(profile().skills, i)">✕</button>
+          </div>
+        }
+        <div class="actions">
+          <button type="button" class="small" (click)="add(profile().skills, blankSkillGroup)">+ Add skill group</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Certifications</h2>
+        @for (c of profile().certifications; track c.id; let i = $index) {
+          <div class="row">
+            <input type="text" placeholder="Name" aria-label="Certification name" [(ngModel)]="c.name" />
+            <input type="text" placeholder="Issuer" aria-label="Issuer" [(ngModel)]="c.issuer" />
+            <input type="text" class="narrow" placeholder="Date" aria-label="Date" [(ngModel)]="c.date" />
+            <button type="button" class="small" aria-label="Remove certification" (click)="remove(profile().certifications, i)">✕</button>
+          </div>
+        }
+        <div class="actions">
+          <button type="button" class="small" (click)="add(profile().certifications, blankCertification)">+ Add certification</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Projects</h2>
+        @for (p of profile().projects; track p.id; let i = $index) {
+          <div class="item">
+            <div class="item-head">
+              <strong>{{ p.name || 'New project' }}</strong>
+              <span class="item-actions">
+                <button type="button" class="small" aria-label="Move up" [disabled]="i === 0" (click)="move(profile().projects, i, -1)">↑</button>
+                <button type="button" class="small" aria-label="Move down" [disabled]="i === profile().projects.length - 1" (click)="move(profile().projects, i, 1)">↓</button>
+                <button type="button" class="small" aria-label="Remove project" (click)="remove(profile().projects, i)">✕</button>
+              </span>
+            </div>
+            <div class="grid2">
+              <label class="field"><span class="label">Name</span><input type="text" [(ngModel)]="p.name" /></label>
+              <label class="field"><span class="label">URL</span><input type="text" [(ngModel)]="p.url" /></label>
+            </div>
+            <label class="field"><span class="label">Description</span><input type="text" [(ngModel)]="p.description" /></label>
+            <label class="field">
+              <span class="label">Technologies (comma-separated)</span>
+              <input
+                type="text"
+                [value]="listToComma(p.tech)"
+                (change)="p.tech = commaToList($any($event.target).value)"
+              />
+            </label>
+            <label class="field">
+              <span class="label">Bullets (one per line)</span>
+              <textarea
+                [rows]="rowsFor(p.bullets)"
+                [value]="listToLines(p.bullets)"
+                (change)="p.bullets = linesToList($any($event.target).value)"
+              ></textarea>
+            </label>
+          </div>
+        }
+        <div class="actions">
+          <button type="button" (click)="add(profile().projects, blankProject)">+ Add project</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="savebar">
+      <span class="status" [class.unsaved]="dirty()">
+        {{ dirty() ? 'Unsaved changes' : savedLabel() }}
+      </span>
+      @if (saveNotice(); as text) {
+        <span class="notice">{{ text }}</span>
+      }
+      <span class="spacer"></span>
+      @if (!showImport()) {
+        <button type="button" (click)="showImport.set(true)">Re-import…</button>
+      }
+      @if (dirty()) {
+        <button type="button" (click)="discard()">Discard changes</button>
+      }
+      <button type="button" class="primary" [disabled]="saving() || !dirty()" (click)="save()">
+        {{ saving() ? 'Saving…' : 'Save profile' }}
+      </button>
+    </div>
+  }
+}

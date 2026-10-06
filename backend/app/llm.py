@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import json
+import re
+from typing import TypeVar
+
 import httpx
 import openai
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+SchemaT = TypeVar("SchemaT", bound=BaseModel)
 
 
 class LlmError(RuntimeError):
@@ -92,3 +98,77 @@ async def check_connection(base_url: str, api_key: str, model: str) -> Connectio
     finally:
         await client.close()
     return ConnectionResult(ok=True, message="Connection works.")
+
+
+def extract_json_object(text: str) -> object:
+    """Parses the JSON object in a model reply, tolerating code fences and surrounding chatter."""
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.IGNORECASE)
+    start, end = cleaned.find("{"), cleaned.rfind("}")
+    if start == -1 or end <= start:
+        raise ValueError("The reply did not contain a JSON object.")
+    return json.loads(cleaned[start : end + 1])
+
+
+async def complete_json(
+    *,
+    base_url: str,
+    api_key: str,
+    model: str,
+    system: str,
+    user: str,
+    schema: type[SchemaT],
+    max_attempts: int = 2,
+    max_tokens: int = 8000,
+) -> SchemaT:
+    """Asks the model for a JSON object and validates it against `schema`.
+
+    Works with any OpenAI-compatible model: JSON mode is requested first and dropped if the
+    server rejects it. If the reply does not validate, the error is fed back once for a fix.
+    """
+    client = openai.AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=180, max_retries=1)
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+    use_json_mode = True
+    last_problem = "unknown"
+    try:
+        for _ in range(max_attempts):
+            reply = ""
+            while True:
+                try:
+                    kwargs = {"response_format": {"type": "json_object"}} if use_json_mode else {}
+                    response = await client.chat.completions.create(
+                        model=model, messages=messages, max_tokens=max_tokens, temperature=0, **kwargs
+                    )
+                    reply = response.choices[0].message.content or ""
+                    break
+                except openai.BadRequestError:
+                    if not use_json_mode:
+                        raise
+                    use_json_mode = False  # this model or provider has no JSON mode; retry plainly
+            try:
+                return schema.model_validate(extract_json_object(reply))
+            except (ValueError, ValidationError) as exc:
+                last_problem = str(exc)[:500]
+                messages += [
+                    {"role": "assistant", "content": reply},
+                    {
+                        "role": "user",
+                        "content": f"That reply was not valid: {last_problem}\n"
+                        "Reply again with only the corrected JSON object.",
+                    },
+                ]
+    except openai.AuthenticationError as exc:
+        raise LlmError("The API key was rejected.") from exc
+    except openai.NotFoundError as exc:
+        raise LlmError(f"Model '{model}' was not found.") from exc
+    except openai.RateLimitError as exc:
+        raise LlmError("The model provider is rate limiting requests. Try again shortly.") from exc
+    except openai.APIConnectionError as exc:
+        raise LlmError("Could not reach the model server.") from exc
+    except openai.APIStatusError as exc:
+        raise LlmError(f"The model server returned an error ({exc.status_code}).") from exc
+    finally:
+        await client.close()
+    raise LlmError(f"The model did not return usable JSON ({last_problem}). Try a stronger model.")

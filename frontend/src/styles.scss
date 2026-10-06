@@ -62,7 +62,8 @@ body {
 }
 
 input[type='text'],
-input[type='password'] {
+input[type='password'],
+textarea {
   width: 100%;
   padding: 9px 11px;
   font: inherit;
@@ -77,6 +78,49 @@ input[type='password'] {
   }
 }
 
+textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+input:disabled {
+  opacity: 0.5;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.notice {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ok);
+
+  &.error {
+    color: var(--error);
+  }
+}
+
+.button,
 button {
   padding: 8px 16px;
   font: inherit;
@@ -101,6 +145,11 @@ button {
     cursor: not-allowed;
   }
 
+  &.small {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+  }
+
   &.primary {
     color: var(--accent-text);
     background: var(--accent);
@@ -111,4 +160,9 @@ button {
       background: var(--accent);
     }
   }
+}
+
+/* A label styled as a button (file picker). */
+label.button {
+  display: inline-block;
 }

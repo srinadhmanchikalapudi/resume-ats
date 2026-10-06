@@ -29,3 +29,80 @@ export interface Health {
   status: string;
   version: string;
 }
+
+export interface Link {
+  label: string;
+  url: string;
+}
+
+export interface Contact {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  links: Link[];
+}
+
+export interface Experience {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  start: string;
+  end: string;
+  current: boolean;
+  bullets: string[];
+}
+
+export interface Education {
+  id: string;
+  school: string;
+  degree: string;
+  field: string;
+  location: string;
+  start: string;
+  end: string;
+  details: string[];
+}
+
+export interface SkillGroup {
+  category: string;
+  items: string[];
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  tech: string[];
+  bullets: string[];
+}
+
+export interface Profile {
+  contact: Contact;
+  summary: string;
+  experience: Experience[];
+  education: Education[];
+  skills: SkillGroup[];
+  certifications: Certification[];
+  projects: Project[];
+}
+
+export interface ProfileOut {
+  profile: Profile;
+  exists: boolean;
+  updated_at: string | null;
+}
+
+export interface ImportResult {
+  profile: Profile;
+  warnings: string[];
+}

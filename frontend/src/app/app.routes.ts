@@ -1,8 +1,10 @@
 import { Routes } from '@angular/router';
+import { ProfilePage } from './features/profile/profile';
 import { SettingsPage } from './features/settings/settings';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'settings' },
+  { path: '', pathMatch: 'full', redirectTo: 'profile' },
+  { path: 'profile', component: ProfilePage },
   { path: 'settings', component: SettingsPage },
-  { path: '**', redirectTo: 'settings' },
+  { path: '**', redirectTo: 'profile' },
 ];

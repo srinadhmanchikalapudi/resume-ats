@@ -20,6 +20,9 @@ src-tauri/gen/
 src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
 
+# Personal test material (the repo is public: never commit real resumes or job postings)
+samples/
+
 # Secrets and local data
 .env
 *.key

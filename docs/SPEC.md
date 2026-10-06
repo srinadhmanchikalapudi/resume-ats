@@ -29,7 +29,9 @@ Tauri v2 shell (window + updater)
 - The sidecar rejects requests that lack the `X-App-Token` header (when a token is configured).
 - In browser dev mode (`ng serve` + `uvicorn`) the UI falls back to `http://127.0.0.1:8000` with no token.
 - User data lives in the OS data directory (`platformdirs`), never in the install folder, so updates cannot erase it.
-- Schema changes go through Alembic migrations that run at startup (added in Phase 1 with the first real tables).
+- Schema changes are append-only SQL migrations (`backend/app/db.py`, tracked with `PRAGMA user_version`) that run
+  at startup, so an update never needs a manual database step. Alembic was dropped: a single-user SQLite file does
+  not need it, and plain SQL avoids bundling migration scripts into the sidecar.
 
 ## LLM access
 

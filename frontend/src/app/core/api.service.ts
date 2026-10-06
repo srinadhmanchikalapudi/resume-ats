@@ -1,6 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { ConnectionResult, Health, ModelInfo, Settings, SettingsOut } from './models';
+import {
+  ConnectionResult,
+  Health,
+  ImportResult,
+  ModelInfo,
+  Profile,
+  ProfileOut,
+  Settings,
+  SettingsOut,
+} from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -32,5 +41,23 @@ export class ApiService {
 
   testConnection() {
     return this.http.post<ConnectionResult>('/settings/test', {});
+  }
+
+  getProfile() {
+    return this.http.get<ProfileOut>('/profile');
+  }
+
+  saveProfile(profile: Profile) {
+    return this.http.put<ProfileOut>('/profile', profile);
+  }
+
+  importResumeFile(file: File) {
+    const body = new FormData();
+    body.append('file', file, file.name);
+    return this.http.post<ImportResult>('/profile/import', body);
+  }
+
+  importResumeText(text: string) {
+    return this.http.post<ImportResult>('/profile/import-text', { text });
   }
 }
